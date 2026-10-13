@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MakerEdu Beurteilungs-Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#F8F8F6;--surface:#FFF;--border:#E2E0DC;--border-lt:#EDEBE8;
+    --text:#1A1A1A;--muted:#8A8780;--dim:#B0ADA8;
+    --purple:#7C3AED;--orange:#E8590C;--green:#0F9D58;--blue:#1A73E8;
+    --r:6px;--font:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100vh;height:100dvh;font-size:13px;}
+  .topbar{background:#1A1A1A;color:white;padding:0;height:52px;display:flex;align-items:center;position:sticky;top:0;z-index:200;flex-shrink:0;width:100%;}
+  .topbar-inner{max-width:1400px;width:100%;margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:12px;height:52px;}
+  .topbar-link{display:flex;align-items:center;gap:10px;text-decoration:none;opacity:1;transition:opacity 0.15s;flex-shrink:0;}
+  .topbar-link:hover{opacity:0.75;}
+  .topbar-mark{width:28px;height:28px;background:#FFF;border-radius:6px;display:grid;place-items:center;color:#1A1A1A;font-weight:800;font-size:13px;flex-shrink:0;}
+  .topbar-brand{color:#FFF;font-size:15px;font-weight:600;letter-spacing:-0.2px;}
+  .topbar-sep{color:rgba(255,255,255,0.35);font-size:15px;margin:0 2px;}
+  .topbar h1{color:rgba(255,255,255,0.6);font-size:15px;font-weight:500;letter-spacing:-0.2px;flex:1;}
+  .topbar-challenge{font-size:10px;font-weight:500;background:rgba(255,255,255,0.15);padding:3px 9px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+  .pill{padding:4px 10px;font-size:11px;font-weight:600;border-radius:100px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all 0.15s;font-family:var(--font);}
+  .pill:hover{border-color:var(--text);color:var(--text);}
+  .main{display:flex;flex:1;overflow:hidden;max-width:1400px;width:100%;margin:0 auto;}
+  .panel-l{width:52%;overflow-y:auto;padding:16px;scrollbar-width:thin;}
+  .panel-r{width:48%;overflow-y:auto;padding:16px;background:#F5F4F1;border-left:1px solid var(--border);scrollbar-width:thin;}
+  .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border-lt);}
+  .toolbar-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:var(--border-lt);color:var(--muted);}
+  .settings{background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);margin-bottom:12px;overflow:hidden;}
+  .settings-toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+  .settings-toggle:hover{color:var(--text);}
+  .settings-body{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;}
+  .settings-body input,.settings-body textarea{padding:6px 10px;font-size:12px;border:1px solid var(--border-lt);border-radius:var(--r);outline:none;font-family:var(--font);color:var(--text);}
+  .settings-body textarea{resize:vertical;}
+  .comp-accordion{background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
+  .comp-header{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background 0.1s;}
+  .comp-header:hover{background:var(--bg);}
+  .comp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .comp-label{flex:1;}
+  .comp-label strong{font-size:12px;font-weight:700;display:block;}
+  .comp-label small{font-size:10px;color:var(--muted);font-weight:500;}
+  .comp-count{font-size:10px;padding:1px 7px;border-radius:100px;font-weight:700;min-width:22px;text-align:center;}
+  .comp-body{padding:4px 12px 10px;}
+  .chevron{transition:transform 0.2s;display:inline-block;font-size:10px;color:var(--dim);}
+  .chevron.open{transform:rotate(180deg);}
+  .sub-header{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--r);cursor:pointer;transition:background 0.1s;}
+  .sub-header:hover{background:var(--bg);}
+  .sub-label{font-weight:600;font-size:12px;flex:1;}
+  .sub-count{font-size:10px;color:var(--dim);font-weight:500;}
+  .sub-indicators{padding-left:30px;padding-top:2px;padding-bottom:4px;}
+  .ind-label{display:flex;gap:6px;align-items:flex-start;padding:2px 0;font-size:11.5px;color:#444;cursor:pointer;line-height:1.45;}
+  .ind-label input{margin-top:2px;width:14px;height:14px;flex-shrink:0;}
+  .right-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .right-header span{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;}
+  .btn-pdf{padding:6px 14px;font-size:12px;font-weight:700;background:var(--text);color:white;border:none;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font);transition:opacity 0.15s;}
+  .btn-pdf:hover{opacity:0.85;}
+  .btn-pdf:disabled{opacity:0.3;cursor:not-allowed;}
+  .btn-pdf svg{width:13px;height:13px;}
+  .btn-link{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+  .a4-wrapper{display:flex;flex-direction:column;align-items:center;gap:20px;padding-bottom:20px;}
+  .a4-frame{width:100%;max-width:520px;background:white;border:1px solid var(--border);border-radius:2px;box-shadow:0 2px 12px rgba(0,0,0,0.1);position:relative;overflow:hidden;margin:0 auto;}
+  .a4-inner{width:210mm;padding:22mm 22mm 20mm 22mm;font-size:2.8mm;line-height:1.2;transform-origin:top left;}
+  .a4-inner table{border-spacing:0;}
+  .a4-page-label{position:absolute;top:-18px;right:4px;font-size:9px;color:var(--dim);font-weight:500;}
+  #pdf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:var(--font);}
+  #pdf-overlay.active{display:flex;}
+  .pdf-spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.2);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .pdf-overlay-text{color:white;font-size:14px;font-weight:700;}
+  .pdf-overlay-sub{color:rgba(255,255,255,0.55);font-size:11px;}
+
+  /* ── Mobile Tab Bar ── */
+  .mobile-tabs{display:none;flex-shrink:0;background:#2D2D2D;border-top:1px solid #444;}
+  .mobile-tab{flex:1;padding:10px 0;font-size:12px;font-weight:600;color:#AAA;text-align:center;cursor:pointer;border:none;background:none;font-family:var(--font);transition:color 0.15s;}
+  .mobile-tab.active{color:#FFF;border-top:2px solid #FFF;}
+  .mobile-pdf-bar{display:none;flex-shrink:0;padding:8px 16px;background:var(--bg);border-top:1px solid var(--border);gap:8px;}
+  .mobile-pdf-bar .btn-pdf{flex:1;justify-content:center;padding:10px;}
+
+  @media(max-width:768px){
+    body{overflow:hidden;}
+    .main{flex-direction:column;overflow:hidden;}
+    .panel-l{width:100%;padding:12px;display:none;}
+    .panel-l.tab-active{display:block;overflow-y:auto;flex:1;}
+    .panel-r{width:100%;border-left:none;padding:12px;display:none;border-top:1px solid var(--border);}
+    .panel-r.tab-active{display:block;overflow-y:auto;flex:1;}
+    .right-header{display:none;}
+    .mobile-tabs{display:flex;}
+    .mobile-pdf-bar{display:flex;}
+    .topbar h1{font-size:13px;}
+    .topbar-inner{padding:0 16px;gap:8px;}
+    .topbar-link{gap:8px;}
+    .pill{padding:3px 8px;font-size:10px;}
+  }
+</style>
+</head>
+<body>
+<div id="pdf-overlay">
+  <div class="pdf-spinner"></div>
+  <div class="pdf-overlay-text">PDF wird erstellt…</div>
+  <div class="pdf-overlay-sub">Einen Moment bitte</div>
+</div>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a href="https://makeredu-tools.github.io/" class="topbar-link">
+      <div class="topbar-mark">M</div>
+      <span class="topbar-brand">MakerEdu</span>
+    </a>
+    <span class="topbar-sep">›</span>
+    <h1>Beurteilungs-Generator</h1>
+    <span class="topbar-challenge" id="topbar-challenge">CHALLENGE-BEURTEILUNG</span>
+  </div>
+</div>
+<div class="main">
+  <div class="panel-l tab-active" id="panel-l">
+    <div class="settings">
+      <div class="settings-toggle" onclick="toggleSettings()">
+        <span>Dokument-Einstellungen</span>
+        <span class="chevron" id="settings-chevron">▼</span>
+      </div>
+      <div class="settings-body" id="settings-body" style="display:none;">
+        <input type="text" id="docTitle" value="CHALLENGE-BEURTEILUNG" placeholder="Titel">
+        <input type="text" id="docSubtitle" value="MakerEdu | Selbst- &amp; Fremdeinschätzung" placeholder="Untertitel">
+        <input type="text" id="schoolName" value="" placeholder="Schulname (optional)">
+        <textarea id="assignmentText" rows="2" placeholder="Auftrag / Aufgabenstellung (optional)"></textarea>
+        <div style="font-size:8px;color:var(--dim);line-height:1.5;margin-top:2px">
+          <strong style="font-weight:600;color:var(--muted)">**fett**</strong> &nbsp;
+          <em style="color:var(--muted)">*kursiv*</em> &nbsp;
+          <span style="text-decoration:underline;color:var(--muted)">__unterstrichen__</span> &nbsp;
+          <span style="color:var(--muted)">^hoch^</span> &nbsp;
+          <span style="color:var(--muted)">~tief~</span>
+        </div>
+        <div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border-lt)">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Felder auf dem Blatt</div>
+          <div id="fields-list"></div>
+        </div>
+        <div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border-lt)">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Gesamtbeurteilung</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#444;cursor:pointer">
+            <input type="checkbox" id="chkGesamt" checked onchange="showGesamt=this.checked;render()" style="width:13px;height:13px">
+            GESAMT-Zeile anzeigen
+          </label>
+        </div>
+        <div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border-lt)">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Seiten</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#444;cursor:pointer;margin-bottom:4px">
+            <input type="checkbox" id="chkRefl" checked onchange="showRefl=this.checked;document.getElementById('chkGespRow').style.display=this.checked?'flex':'none';if(!this.checked)showGesp=false;render()" style="width:13px;height:13px">
+            Reflexionsseite
+          </label>
+          <div id="chkGespRow" style="display:flex;align-items:center;gap:6px;padding-left:20px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#444;cursor:pointer">
+              <input type="checkbox" id="chkGesp" checked onchange="showGesp=this.checked;render()" style="width:13px;height:13px">
+              2-Minuten-Gespräch
+            </label>
+          </div>
+        </div>
+        <div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border-lt)">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Druckmodus</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#444;cursor:pointer">
+            <input type="checkbox" id="colorToggle" checked onchange="colorMode=this.checked;render()" style="width:13px;height:13px">
+            Farbig
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <span class="toolbar-badge" id="status-badge">0 Indikatoren</span>
+      <span style="color:var(--border);font-size:11px">·</span>
+      <span style="font-size:11px;color:var(--muted)" id="status-comps">0 Bereiche</span>
+      <span style="flex:1"></span>
+      <button class="pill" onclick="selectAll()">Alle</button>
+      <button class="pill" onclick="resetAll()">Zurücksetzen</button>
+    </div>
+    <div id="accordions"></div>
+    <div class="source-note" style="padding:14px 16px 18px;font-size:10px;line-height:1.55;color:var(--muted)">Kompetenzfelder und Indikatoren nach: Ingold, S. &amp; Maurer, B. (Hrsg.) (2024). <em>Making und Schule. Praxishandbuch für Schulentwicklung und Unterricht.</em> München: kopaed, Kap. 3.2.1 und 5.6. <a href="https://creativecommons.org/licenses/by/4.0/deed.de" style="color:inherit">CC BY 4.0</a>, angepasst.<br>MakerEdu Tools · © Raphael Fisch · CC BY-NC-SA 4.0</div>
+  </div>
+  <div class="panel-r" id="panel-r">
+    <div class="right-header">
+      <span>Vorschau</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn-pdf btn-link" id="btn-link" disabled onclick="saveToUrl()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Link speichern
+        </button>
+        <button class="btn-pdf" id="btn-pdf" disabled onclick="generatePDF()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          PDF herunterladen
+        </button>
+      </div>
+    </div>
+    <div id="preview"></div>
+  </div>
+</div>
+<div class="mobile-tabs">
+  <button class="mobile-tab active" id="tab-edit" onclick="switchTab('edit')">✏️ Indikatoren</button>
+  <button class="mobile-tab" id="tab-preview" onclick="switchTab('preview')">👁 Vorschau</button>
+</div>
+<div class="mobile-pdf-bar">
+  <button class="btn-pdf btn-link" id="btn-link-mobile" disabled onclick="saveToUrl()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+  </button>
+  <button class="btn-pdf" id="btn-pdf-mobile" disabled onclick="generatePDF()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </button>
+</div>
+
+<script>
+const DATA = {
+  personal: { id:"personal", label:"PERSONALE KOMPETENZEN", shortLabel:"Dranbleiben", color:"#C00000", colorLight:"#FDECEA", subs: [
+    { id:"p1", label:"Eigenst\u00e4ndigkeit", inds: [
+      "Du konntest etwas bauen, das dir wichtig ist.",
+      "Du hattest viele gute Ideen.",
+      "Du hast deine eigene(n) Idee(n) umgesetzt.",
+      "Du hast etwas gelernt, das dich interessiert.",
+      "Du bist stolz auf das, was du beim Making gelernt hast.",
+      "Du hast dein Produkt selbst\u00e4ndig geplant und umgesetzt."]},
+    { id:"p2", label:"Offenheit / Risikobereitschaft", inds: [
+      "Du hast Werkzeuge, Materialien oder Maschinen ausprobiert, die du vorher noch nicht kanntest.",
+      "Du hast Ideen umgesetzt, von denen du nicht wusstest, ob sie funktionieren.",
+      "Du hast ein Projekt gew\u00e4hlt, das du vorher noch nie umgesetzt hast."]},
+    { id:"p3", label:"Selbstregulation / Selbstreflexion", inds: [
+      "Wenn etwas nicht funktioniert hat, wolltest du herausfinden, was der Grund daf\u00fcr ist.",
+      "Du hast so lange get\u00fcftelt, bis das Problem gel\u00f6st war.",
+      "Du hast dich mit dem ersten Ergebnis nicht zufriedengegeben, sondern mehrere Prototypen gebaut und verbessert.",
+      "Du hast Fehler als Chance gesehen und etwas daraus gelernt.",
+      "Wenn es mal m\u00fchsam war, konntest du dich selbst zum Weitermachen motivieren.",
+      "Du hast die Zeit sinnvoll eingeteilt.",
+      "Du hast dein Ziel im Auge behalten und bis zum Schluss verfolgt.",
+      "Du konntest dich auf dein Projekt konzentrieren."]},
+    { id:"p4", label:"Flexibilit\u00e4t / Improvisation", inds: [
+      "Wenn etwas gefehlt hat (z.B. Material), hast du etwas anderes verwendet.",
+      "Du hast Dinge verwendet, die eigentlich f\u00fcr etwas anderes gedacht sind.",
+      "Obwohl du kaum Material hattest, konntest du trotzdem etwas daraus machen."]},
+    { id:"p5", label:"\u00dcberzeugungskraft", inds: [
+      "Du konntest andere Teammitglieder von deinen Ideen \u00fcberzeugen."]},
+    { id:"p6", label:"Verantwortung / Haltung", inds: [
+      "Du bist Schwierigkeiten nicht aus dem Weg gegangen.",
+      "Du hast Hilfe gesucht und angenommen, wenn du nicht mehr weiterwusstest.",
+      "Du hast deine wichtigsten Erkenntnisse dokumentiert.",
+      "Du hast beim Making etwas Neues gelernt.",
+      "Du hast deinen Arbeitsplatz, die Werkzeuge und Maschinen aufger\u00e4umt und sauber hinterlassen.",
+      "Du hast die Schutz- und Sicherheitsregeln beachtet (z.B. Schutzbrille beim L\u00f6ten).",
+      "Du hast beim Making niemanden in Gefahr gebracht."]},
+  ]},
+  methodical: { id:"methodical", label:"METHODENKOMPETENZEN", shortLabel:"Denken & Zeigen", color:"#70AD47", colorLight:"#F0F7EA", subs: [
+    { id:"m1", label:"Problemanalyse / Problemverstehen", inds: [
+      "Du hast selbst versucht, das Problem zu verstehen.",
+      "Dir war klar, welches Problem zu l\u00f6sen ist.",
+      "Bei Fehlern hast du herausgefunden, was das Problem war.",
+      "Du hast Tipps zu deinem Problem im Netz oder anderswo gefunden."]},
+    { id:"m2", label:"Kreative Denk- und Probleml\u00f6sef\u00e4higkeiten", inds: [
+      "Du hattest sehr viele Ideen.",
+      "Du hast Methoden zur Ideenentwicklung eingesetzt (z.B. Brainstorming, morphologischer Kasten, \u2026).",
+      "Bei der Fehlersuche bist du systematisch vorgegangen.",
+      "Du konntest selbstst\u00e4ndig Fehler beheben.",
+      "Du konntest Fehler mit Unterst\u00fctzung anderer beheben.",
+      "Du hast Methoden eingesetzt, um Probleme von dir oder anderen zu l\u00f6sen."]},
+    { id:"m3", label:"Produktentwicklung", inds: [
+      "Du hast Skizzen, Modelle und Prototypen angefertigt, bevor du das Endprodukt gebaut hast.",
+      "Du hast dich beim Entwickeln deines Produkts am Design Thinking Modell orientiert.",
+      "Du kannst deine Konstruktionsschritte und Gestaltungsentscheidungen begr\u00fcnden.",
+      "Du kannst dir f\u00fcr dein Projekt Inspirationen suchen (z.B. im Netz oder von Mitsch\u00fcler*innen)."]},
+    { id:"m4", label:"Recherche- und Informationskompetenzen", inds: [
+      "Du hast im Internet brauchbare Anregungen f\u00fcr dein Produkt gefunden."]},
+  ]},
+  social: { id:"social", label:"SOZIALE KOMPETENZEN", shortLabel:"Zusammenarbeiten", color:"#FFC000", colorLight:"#FFF8E1", subs: [
+    { id:"s1", label:"Zusammenarbeit", inds: [
+      "Du bist respektvoll mit deinen Teamkolleginnen und Teamkollegen umgegangen.",
+      "Du hast dazu beigetragen, dass Meinungsverschiedenheiten und Konflikte gel\u00f6st wurden.",
+      "Du hast dazu beigetragen, die Arbeit im Team zu planen.",
+      "Du konntest deine St\u00e4rken ins Team einbringen.",
+      "Du hast dazu beigetragen, dass die Arbeit in deinem Team produktiv war.",
+      "Du hast dich aktiv an der Zusammenarbeit im Team beteiligt."]},
+    { id:"s2", label:"Hilfs- und Unterst\u00fctzungsbereitschaft", inds: [
+      "Du hast anderen bei ihren Projekten weitergeholfen.",
+      "Du konntest anderen etwas beibringen (z.B. wie ein Werkzeug funktioniert oder wie man am Computer etwas konstruiert).",
+      "Du hast dazu beigetragen, dass Ideen deiner Klassenkamerad*innen umgesetzt werden konnten."]},
+    { id:"s3", label:"Feedback / Unterst\u00fctzung (einfordern)", inds: [
+      "Wenn du nicht weiterwusstest, hast du andere um Unterst\u00fctzung gebeten.",
+      "Du konntest das Feedback deiner Klassenkameradinnen und Kameraden f\u00fcr dein Projekt nutzen.",
+      "Du konntest dich in die Produkte deiner Klassenkameradinnen und Kameraden hineindenken und Verbesserungsvorschl\u00e4ge machen."]},
+    { id:"s4", label:"Wertsch\u00e4tzung", inds: [
+      "Du hast Teammitglieder f\u00fcr eine gute Idee gelobt.",
+      "Du hast die St\u00e4rken deiner Teammitglieder erkannt und gew\u00fcrdigt."]},
+  ]},
+  technical: { id:"technical", label:"FACHKOMPETENZEN", shortLabel:"Machen", color:"#5B9BD5", colorLight:"#EEF4FF", subs: [
+    { id:"f1", label:"Anwendung von Werkzeugen und Maschinen / Handwerk", inds: [
+      "Du hast digitale Fabrikationsverfahren kennengelernt.",
+      "Du hast digitale Fabrikationsverfahren f\u00fcr die Herstellung deines Produkts verwendet.",
+      "Du weisst, wof\u00fcr du einen 3D-Drucker / einen Laser Cutter / einen Plotter / eine CNC-Fr\u00e4se sinnvoll einsetzen kannst."]},
+    { id:"f2", label:"Technik", inds: [
+      "Du hast neue technische Verfahren kennengelernt.",
+      "Du konntest deine Kenntnisse \u00fcber Naturwissenschaft und Technik anwenden."]},
+    { id:"f3", label:"Informatische Kompetenzen", inds: [
+      "Du konntest Microcontroller, Sensoren und Aktoren zielf\u00fchrend in dein Produkt einbauen.",
+      "Du hast Programme geschrieben, in welchen Daten von Sensoren zur Steuerung von Aktoren richtig verwendet werden.",
+      "Du konntest Schleifen, Wenn-Dann-Bedingungen, Variablen und andere Programmierbausteine zu lauff\u00e4higen Programmen zusammensetzen."]},
+    { id:"f4", label:"Gestaltung und Design", inds: []},
+    { id:"f5", label:"Medienkompetenzen", inds: [
+      "Du hast Medien zur Dokumentation deiner Arbeit sinnvoll eingesetzt."]},
+  ]}
+};
+
+let selections={},openComps={},openSubs={},customTexts={},customAdded={},editingInd=null;
+let colorMode=true;
+let showRefl=true, showGesp=true, showGesamt=true;
+
+function switchTab(tab){
+  const pl=document.getElementById('panel-l'),pr=document.getElementById('panel-r');
+  const te=document.getElementById('tab-edit'),tp=document.getElementById('tab-preview');
+  if(tab==='edit'){
+    pl.classList.add('tab-active');pr.classList.remove('tab-active');
+    te.classList.add('active');tp.classList.remove('active');
+  } else {
+    pr.classList.add('tab-active');pl.classList.remove('tab-active');
+    tp.classList.add('active');te.classList.remove('active');
+    setTimeout(scaleA4Pages,50);
+  }
+}
+function toggleColorMode(){colorMode=!colorMode;const cb=document.getElementById('colorToggle');if(cb)cb.checked=colorMode;render();}
+function dc(c){return colorMode?c:'#555555';}
+function dcLight(cl){return colorMode?cl:'#F5F5F3';}
+function hexToRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
+
+let docFields=[
+  {label:'Name',active:true,custom:false},
+  {label:'Challenge',active:true,custom:false},
+  {label:'Datum',active:true,custom:false},
+  {label:'Inspirationsquelle',active:true,custom:false}
+];
+
+function renderFieldsList(){
+  let h='<div style="display:flex;flex-direction:column;gap:3px;margin-bottom:6px">';
+  docFields.forEach((f,i)=>{
+    h+='<div style="display:flex;align-items:center;gap:3px;font-size:11px">';
+    h+='<div style="display:flex;flex-direction:column;gap:0;line-height:1">';
+    h+='<button onclick="moveField('+i+',-1)" '+(i===0?'disabled':'')+' style="font-size:8px;padding:0 3px;background:none;border:none;cursor:'+(i===0?'default':'pointer')+';color:'+(i===0?'var(--border-lt)':'var(--muted)')+';font-family:var(--font)">\u25b2</button>';
+    h+='<button onclick="moveField('+i+',1)" '+(i===docFields.length-1?'disabled':'')+' style="font-size:8px;padding:0 3px;background:none;border:none;cursor:'+(i===docFields.length-1?'default':'pointer')+';color:'+(i===docFields.length-1?'var(--border-lt)':'var(--muted)')+';font-family:var(--font)">\u25bc</button>';
+    h+='</div>';
+    h+='<input type="checkbox" '+(f.active?'checked':'')+' onchange="docFields['+i+'].active=this.checked;render()" style="width:13px;height:13px">';
+    h+='<input type="text" value="'+f.label.replace(/"/g,'&quot;')+'" onchange="docFields['+i+'].label=this.value;render()" style="flex:1;max-width:140px;font-size:11px;padding:2px 5px;border:1px solid transparent;border-radius:3px;font-family:var(--font);background:none;color:#444" onfocus="this.style.borderColor=\'var(--border)\';this.style.background=\'white\'" onblur="this.style.borderColor=\'transparent\';this.style.background=\'none\'">';
+    if(f.custom)h+='<button onclick="docFields.splice('+i+',1);render()" style="font-size:9px;padding:1px 4px;background:none;border:none;cursor:pointer;color:var(--dim)">\u2715</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button onclick="addCustomField()" style="font-size:10px;padding:3px 8px;background:none;color:var(--muted);border:1px dashed var(--border);border-radius:4px;cursor:pointer;font-family:var(--font)" onmouseover="this.style.borderColor=\'var(--muted)\'" onmouseout="this.style.borderColor=\'var(--border)\'">+ Feld hinzuf\u00fcgen</button>';
+  document.getElementById('fields-list').innerHTML=h;
+}
+function moveField(idx,dir){const t=idx+dir;if(t<0||t>=docFields.length)return;const tmp=docFields[idx];docFields[idx]=docFields[t];docFields[t]=tmp;render();}
+function addCustomField(){docFields.push({label:'Neues Feld',active:true,custom:true});renderFieldsList();render();}
+function getActiveFields(){return docFields.filter(f=>f.active);}
+function getIndText(sId,idx,sub){const k=sId+'-'+idx;if(customTexts[k]!==undefined)return customTexts[k];if(idx>=sub.inds.length)return(customAdded[sId]||[])[idx-sub.inds.length]||'';return sub.inds[idx];}
+function getAllInds(sub){return[...sub.inds,...(customAdded[sub.id]||[])];}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function getActiveComps(){return Object.values(DATA).filter(c=>c.subs.some(s=>(selections[s.id]||[]).length>0));}
+function render(){renderFieldsList();renderAccordions();renderPreview();updateStatus();}
+function toggleSettings(){const b=document.getElementById('settings-body'),c=document.getElementById('settings-chevron'),v=b.style.display!=='none';b.style.display=v?'none':'flex';c.classList.toggle('open',!v);}
+function updateStatus(){let t=0;Object.values(selections).forEach(a=>t+=a.length);const ac=getActiveComps().length,b=document.getElementById('status-badge');b.textContent=t+' Indikatoren';b.style.background=t>0?'#EDFCF2':'';b.style.color=t>0?'#0F9D58':'';document.getElementById('status-comps').textContent=ac+' Bereiche';const dis=t===0;document.getElementById('btn-pdf').disabled=dis;const bl=document.getElementById('btn-link');if(bl)bl.disabled=dis;const blm=document.getElementById('btn-link-mobile');if(blm)blm.disabled=dis;const bm=document.getElementById('btn-pdf-mobile');if(bm)bm.disabled=dis;}
+function toggleComp(id){openComps[id]=!openComps[id];render();}
+function toggleSub(id){openSubs[id]=!openSubs[id];render();}
+function toggleInd(sId,idx){const a=selections[sId]||[];if(a.includes(idx))selections[sId]=a.filter(x=>x!==idx);else selections[sId]=[...a,idx];render();}
+function toggleAllInds(sId,sel){let sub;Object.values(DATA).forEach(c=>c.subs.forEach(s=>{if(s.id===sId)sub=s;}));selections[sId]=sel?getAllInds(sub).map((_,i)=>i):[];render();}
+function startEdit(sId,idx){editingInd=sId+'-'+idx;render();const el=document.getElementById('edit-input-'+sId+'-'+idx);if(el){el.focus();el.select();}}
+function cancelEdit(){editingInd=null;render();}
+function saveIndEdit(sId,idx,txt){txt=txt.trim();if(!txt){cancelEdit();return;}let sub;Object.values(DATA).forEach(c=>c.subs.forEach(s=>{if(s.id===sId)sub=s;}));if(idx<sub.inds.length){if(txt===sub.inds[idx])delete customTexts[sId+'-'+idx];else customTexts[sId+'-'+idx]=txt;}else{const ai=idx-sub.inds.length;if(!customAdded[sId])customAdded[sId]=[];customAdded[sId][ai]=txt;}editingInd=null;render();}
+function addCustomInd(sId){if(!customAdded[sId])customAdded[sId]=[];customAdded[sId].push('Neuer Indikator...');let sub;Object.values(DATA).forEach(c=>c.subs.forEach(s=>{if(s.id===sId)sub=s;}));const ni=sub.inds.length+customAdded[sId].length-1;if(!selections[sId])selections[sId]=[];selections[sId].push(ni);openSubs[sId]=true;editingInd=sId+'-'+ni;render();const el=document.getElementById('edit-input-'+sId+'-'+ni);if(el){el.focus();el.select();}}
+function removeCustomInd(sId,idx){let sub;Object.values(DATA).forEach(c=>c.subs.forEach(s=>{if(s.id===sId)sub=s;}));const ai=idx-sub.inds.length;if(!customAdded[sId])return;customAdded[sId].splice(ai,1);const pfx=sId+'-';Object.keys(customTexts).forEach(k=>{if(k.startsWith(pfx)){const ki=parseInt(k.split('-').pop());if(ki===idx)delete customTexts[k];else if(ki>idx){customTexts[pfx+(ki-1)]=customTexts[k];delete customTexts[k];}}});const sl=selections[sId]||[];selections[sId]=sl.filter(i=>i!==idx).map(i=>i>idx?i-1:i);editingInd=null;render();}
+function selectAll(){selections={};Object.values(DATA).forEach(c=>c.subs.forEach(s=>{selections[s.id]=getAllInds(s).map((_,i)=>i);}));Object.values(DATA).forEach(c=>{openComps[c.id]=true;});render();}
+function resetAll(){selections={};render();}
+
+function saveToUrl(){
+  const state={sel:selections,ct:customTexts,ca:customAdded,df:docFields,cm:colorMode,sr:showRefl,sg:showGesp,sge:showGesamt,
+    t:document.getElementById('docTitle').value,st:document.getElementById('docSubtitle').value,
+    sn:document.getElementById('schoolName').value,at:document.getElementById('assignmentText').value};
+  const encoded=encodeURIComponent(JSON.stringify(state));
+  showLinkModal(window.location.origin+window.location.pathname+'?c='+encoded);
+}
+function showLinkModal(url){
+  const ex=document.getElementById('link-modal');if(ex)ex.remove();
+  const ov=document.createElement('div');ov.id='link-modal';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  const m=document.createElement('div');
+  m.style.cssText='background:white;border-radius:8px;padding:20px;max-width:500px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.2);font-family:var(--font)';
+  m.innerHTML='<div style="font-size:14px;font-weight:700;color:#222;margin-bottom:4px">Link gespeichert</div><div style="font-size:11px;color:#888;margin-bottom:12px">Dieser Link enth\u00e4lt deine komplette Konfiguration.</div><div style="display:flex;gap:6px;margin-bottom:12px"><input id="link-input" type="text" value="'+url+'" readonly style="flex:1;font-size:11px;padding:8px 10px;border:1px solid #E2E0DC;border-radius:6px;font-family:monospace;color:#555;outline:none;background:#F8F8F6" onclick="this.select()"><button id="copy-btn" onclick="copyLink()" style="padding:8px 16px;font-size:12px;font-weight:700;background:#222;color:white;border:none;border-radius:6px;cursor:pointer;font-family:var(--font)">Kopieren</button></div><button onclick="document.getElementById(\'link-modal\').remove()" style="font-size:11px;color:#888;background:none;border:none;cursor:pointer;font-family:var(--font)">Schliessen</button>';
+  ov.appendChild(m);document.body.appendChild(ov);document.getElementById('link-input').select();
+}
+function copyLink(){
+  const input=document.getElementById('link-input'),btn=document.getElementById('copy-btn');
+  navigator.clipboard.writeText(input.value).then(()=>{
+    btn.textContent='\u2713 Kopiert!';btn.style.background='#0F9D58';
+    setTimeout(()=>{btn.textContent='Kopieren';btn.style.background='#222';},2000);
+  }).catch(()=>{input.select();document.execCommand('copy');btn.textContent='\u2713 Kopiert!';setTimeout(()=>btn.textContent='Kopieren',2000);});
+}
+function loadFromUrl(){
+  const c=new URLSearchParams(window.location.search).get('c');if(!c)return;
+  try{
+    // Try new format (encodeURIComponent) first, fall back to old btoa format
+    let s;
+    try{ s=JSON.parse(decodeURIComponent(c)); }
+    catch(e){ s=JSON.parse(decodeURIComponent(escape(atob(c)))); }
+    if(s.sel)selections=s.sel;if(s.ct)customTexts=s.ct;if(s.ca)customAdded=s.ca;if(s.df)docFields=s.df;
+    if(s.cm!==undefined){colorMode=s.cm;const cb=document.getElementById('colorToggle');if(cb)cb.checked=colorMode;}
+    if(s.sr!==undefined){showRefl=s.sr;const el=document.getElementById('chkRefl');if(el){el.checked=showRefl;document.getElementById('chkGespRow').style.display=showRefl?'flex':'none';}}
+    if(s.sg!==undefined){showGesp=s.sg;const el=document.getElementById('chkGesp');if(el)el.checked=showGesp;}
+    if(s.sge!==undefined){showGesamt=s.sge;const el=document.getElementById('chkGesamt');if(el)el.checked=showGesamt;}
+    if(s.t){document.getElementById('docTitle').value=s.t;const b=document.getElementById('topbar-challenge');if(b)b.textContent=s.t;}if(s.st)document.getElementById('docSubtitle').value=s.st;
+    if(s.sn)document.getElementById('schoolName').value=s.sn;if(s.at)document.getElementById('assignmentText').value=s.at;
+    Object.values(DATA).forEach(c=>{openComps[c.id]=c.subs.some(s=>(selections[s.id]||[]).length>0);});
+    render();
+  }catch(e){console.warn(e);}
+}
+document.addEventListener('input',e=>{if(['docTitle','docSubtitle','schoolName','assignmentText'].includes(e.target.id))renderPreview();if(e.target.id==='docTitle'){const b=document.getElementById('topbar-challenge');if(b)b.textContent=e.target.value||'CHALLENGE-BEURTEILUNG';}});
+
+function renderAccordions(){
+  let h='';
+  Object.values(DATA).forEach(comp=>{
+    const ts=comp.subs.reduce((s,sub)=>s+(selections[sub.id]||[]).length,0),io=openComps[comp.id];
+    h+='<div class="comp-accordion" style="'+(io?'border-color:'+comp.color+'40':'')+'"><div class="comp-header" onclick="toggleComp(\''+comp.id+'\')"><div class="comp-dot" style="background:'+comp.color+'"></div><div class="comp-label"><strong style="color:'+comp.color+'">'+comp.label+'</strong><small>'+comp.shortLabel+'</small></div><span class="comp-count" style="background:'+(ts>0?comp.color:'var(--border-lt)')+';color:'+(ts>0?'white':'var(--dim)')+'">'+ts+'</span><span class="chevron '+(io?'open':'')+'">&#9660;</span></div>';
+    if(io){
+      h+='<div class="comp-body">';
+      comp.subs.forEach(sub=>{
+        const ai=getAllInds(sub),sl=selections[sub.id]||[],as=sl.length===ai.length&&ai.length>0,ss2=sl.length>0,so=openSubs[sub.id];
+        h+='<div style="margin-bottom:4px"><div class="sub-header" style="background:'+(ss2?comp.color+'0A':'transparent')+'" onclick="toggleSub(\''+sub.id+'\')"><input type="checkbox" '+(as?'checked':'')+' onclick="event.stopPropagation();toggleAllInds(\''+sub.id+'\','+ (!as)+')" style="accent-color:'+comp.color+';width:14px;height:14px"><span class="sub-label">'+sub.label+'</span><span class="sub-count">'+sl.length+'/'+ai.length+'</span><span class="chevron '+(so?'open':'')+'">&#9660;</span></div>';
+        if(so){
+          h+='<div class="sub-indicators">';
+          ai.forEach((_,i)=>{
+            const it=getIndText(sub.id,i,sub),ck=sl.includes(i),ek=sub.id+'-'+i,ie=editingInd===ek;
+            if(ie){
+              h+='<div style="display:flex;gap:4px;align-items:center;margin:2px 0"><input type="checkbox" '+(ck?'checked':'')+' onclick="toggleInd(\''+sub.id+'\','+i+')" style="accent-color:'+comp.color+';width:14px;height:14px;flex-shrink:0"><input type="text" id="edit-input-'+ek+'" value="'+it.replace(/"/g,'&quot;')+'" style="flex:1;font-size:11px;padding:4px 8px;border:1.5px solid '+comp.color+';border-radius:4px;outline:none;font-family:var(--font)" onkeydown="if(event.key===\'Enter\')saveIndEdit(\''+sub.id+'\','+i+',this.value);if(event.key===\'Escape\')cancelEdit()"><button onclick="saveIndEdit(\''+sub.id+'\','+i+',document.getElementById(\'edit-input-'+ek+'\').value)" style="padding:3px 8px;background:'+comp.color+';color:white;border:none;border-radius:4px;cursor:pointer;font-family:var(--font);font-size:11px">\u2713</button><button onclick="cancelEdit()" style="padding:3px 8px;background:var(--border-lt);border:none;border-radius:4px;cursor:pointer;font-family:var(--font);font-size:11px">\u2715</button>';
+              if(i>=sub.inds.length)h+='<button onclick="removeCustomInd(\''+sub.id+'\','+i+')" style="padding:3px 6px;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;cursor:pointer;font-size:10px">🗑</button>';
+              h+='</div>';
+            } else {
+              h+='<div style="display:flex;align-items:center;gap:2px" class="ind-row"><label class="ind-label" style="flex:1"><input type="checkbox" '+(ck?'checked':'')+' onclick="toggleInd(\''+sub.id+'\','+i+')" style="accent-color:'+comp.color+'">'+it+'</label><button onclick="event.stopPropagation();startEdit(\''+sub.id+'\','+i+')" class="edit-btn" style="font-size:10px;padding:2px 5px;background:none;border:1px solid transparent;border-radius:3px;cursor:pointer;color:var(--dim);flex-shrink:0;opacity:0;transition:opacity 0.1s">\u270e</button>';
+              if(i>=sub.inds.length)h+='<button onclick="event.stopPropagation();removeCustomInd(\''+sub.id+'\','+i+')" class="edit-btn" style="font-size:10px;padding:2px 5px;background:none;border:1px solid transparent;border-radius:3px;cursor:pointer;color:#E53E3E;flex-shrink:0;opacity:0;transition:opacity 0.1s">\u2715</button>';
+              h+='</div>';
+            }
+          });
+          h+='<button onclick="addCustomInd(\''+sub.id+'\')" style="font-size:10px;padding:4px 8px;margin-top:4px;background:none;color:'+comp.color+';border:1px dashed '+comp.color+'44;border-radius:4px;cursor:pointer;width:100%;text-align:left;font-family:var(--font)" onmouseover="this.style.background=\''+comp.colorLight+'\'" onmouseout="this.style.background=\'none\'">+ Eigenen Indikator</button></div>';
+        }
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  document.getElementById('accordions').innerHTML=h;
+  document.querySelectorAll('.ind-row').forEach(r=>{
+    r.addEventListener('mouseenter',()=>r.querySelectorAll('.edit-btn').forEach(b=>b.style.opacity='1'));
+    r.addEventListener('mouseleave',()=>r.querySelectorAll('.edit-btn').forEach(b=>b.style.opacity='0'));
+  });
+}
+
+// HTML PREVIEW
+function renderPreview(){
+  const active=getActiveComps();
+
+  // Create jsPDF instance early for text measurement
+  const {jsPDF:_jsPDF}=window.jspdf;
+  const _mdoc=new _jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  _mdoc.setFont('helvetica','normal');
+
+  const title=document.getElementById('docTitle').value||'CHALLENGE-BEURTEILUNG';
+  const subtitle=document.getElementById('docSubtitle').value||'';
+  const school=document.getElementById('schoolName').value;
+  const assignment=document.getElementById('assignmentText').value;
+  let total=0;Object.values(selections).forEach(a=>total+=a.length);
+
+  // ── Shared constants mirroring PDF values exactly ──
+  const COL='52% 12% 12% 12% 12%';
+  const CB='&#9744;'; // checkbox
+  const GRADES=['--','-','+','++'];
+
+  const blocks=[];
+
+  // ── Title block ──
+  let th='<div style="margin-bottom:2mm;padding-bottom:2mm;border-bottom:0.5mm solid #222">';
+  th+='<div style="font-size:4.94mm;font-weight:800;color:#222;line-height:1.2">'+esc(title)+'</div>';
+  if(subtitle||school)th+='<div style="font-size:2.82mm;color:#888;margin-top:0.5mm">'+esc(subtitle)+(school?' · '+esc(school):'')+'</div>';
+  th+='</div>';
+  const _titleSub=(document.getElementById('docSubtitle').value||'')+(document.getElementById('schoolName').value||'');
+  blocks.push({html:th, _pdfH:_titleSub?21:17});
+
+  // ── Fields block ──
+  const af=getActiveFields();
+  if(af.length){
+    let fH='<div style="margin-bottom:2mm">';
+    for(let r=0;r<af.length;r+=2){
+      const last=r+2>=af.length, hasR=!!af[r+1];
+      fH+='<div style="display:grid;grid-template-columns:1fr 1fr;margin-bottom:'+(last?'0':'0')+'mm">';
+      fH+='<div style="display:flex;align-items:flex-end;gap:1mm;padding-right:2mm;padding-top:3mm">'
+        +'<span style="font-size:2.65mm;font-weight:700;color:#444;white-space:nowrap">'+esc(af[r].label)+':</span>'
+        +'<span style="flex:1;border-bottom:0.25mm solid #888;min-width:5mm"></span></div>';
+      if(hasR)fH+='<div style="display:flex;align-items:flex-end;gap:1mm;padding-left:2mm;padding-top:3mm">'
+        +'<span style="font-size:2.65mm;font-weight:700;color:#444;white-space:nowrap">'+esc(af[r+1].label)+':</span>'
+        +'<span style="flex:1;border-bottom:0.25mm solid #888;min-width:5mm"></span></div>';
+      else fH+='<div></div>';
+      fH+='</div>';
+    }
+    fH+='</div>';
+    blocks.push({html:fH, _pdfH:Math.ceil(af.length/2)*7+2});
+  }
+
+  // ── Assignment block ──
+  if(assignment){
+    const _assignLines=_mdoc.setFontSize(6.5)&&false||_mdoc.splitTextToSize(assignment.replace(/\*\*.*?\*\*|\*.*?\*|__.*?__|[\^~].*?[\^~]/g,m=>m.replace(/[^]/g,'x')),166-8).length;
+    const _assignH=_assignLines*3.2+10+3;
+    function mdToHtml(t){
+      return esc(t)
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g,'<em>$1</em>')
+        .replace(/__(.+?)__/g,'<span style="text-decoration:underline">$1</span>')
+        .replace(/\^(.+?)\^/g,'<sup>$1</sup>')
+        .replace(/~(.+?)~/g,'<sub>$1</sub>');
+    }
+    blocks.push({_pdfH:_assignH, html:'<div style="background:#F7F7F5;border:0.15mm solid #D0D0CE;border-radius:1mm;padding:2mm 2.5mm;margin-bottom:2mm"><div style="font-size:2.4mm;font-weight:700;color:#222;line-height:1.4;margin-bottom:0.5mm">Auftrag:</div><div style="font-size:2.1mm;color:#555;line-height:1.6;margin:0;padding:0">'+mdToHtml(assignment)+'</div></div>'});
+  }
+
+  // ── Indicator tables ──
+  if(total===0){
+    blocks.push({html:'<div style="text-align:center;color:#BBB;font-size:3mm;padding:15mm 5mm;border:0.5mm dashed #DDD;border-radius:1mm">Wähle Kompetenzen und Indikatoren aus</div>'});
+  } else {
+    // Sub-table row style helpers
+    const COL='<colgroup><col style="width:52%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>';
+    function tOpen(extraStyle){return '<table style="width:100%;border-collapse:collapse;table-layout:fixed;'+(extraStyle||'')+'">'+COL;}
+    function tClose(){return '</table>';}
+    function hdrRow(cc,cl,label){
+      let r='<tr><td style="background:'+cc+';color:white;font-weight:700;font-size:2.47mm;height:5mm;padding:0 2mm;line-height:5mm">'+esc(label)+'</td>';
+      GRADES.forEach(l=>r+='<td style="text-align:center;font-size:3mm;font-weight:700;color:'+cc+';background:'+cl+';height:5mm;line-height:5mm">'+l+'</td>');
+      return r+'</tr>';
+    }
+    function indRow(text){
+      let r='<tr><td style="font-size:1.94mm;padding:2.5mm 2mm;color:#444;border-top:0.15mm solid #DDD;line-height:1.65;min-height:5mm;height:5mm">'+esc(text)+'</td>';
+      for(let c=0;c<4;c++)r+='<td style="text-align:center;vertical-align:middle;border-top:0.15mm solid #DDD;border-left:0.15mm solid #DDD;background:white;font-size:3mm;color:#BBB;min-height:5mm;height:5mm">'+CB+'</td>';
+      return r+'</tr>';
+    }
+    function compHdrRow(cc, label){
+      return '<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-top:2mm">'
+        +COL+'<tr><td colspan="5" style="background:'+cc+';color:white;font-weight:700;font-size:2.65mm;height:5mm;padding:0 2mm;line-height:5mm">'+esc(label)+'</td></tr></table>';
+    }
+    active.forEach(comp=>{
+      let firstSubForComp=true;
+      comp.subs.forEach(sub=>{
+        const si=selections[sub.id]||[];if(!si.length)return;
+        const cc=dc(comp.color),cl=dcLight(comp.colorLight);
+        // Competency title header before first sub of this comp
+        if(firstSubForComp){
+          firstSubForComp=false;
+          blocks.push({html: compHdrRow(cc, comp.label), compHdr:true, hmm:7});
+        }
+        // First block: header + first indicator row (must stay together, like PDF)
+        const lastBlock=blocks[blocks.length-1];
+        const subMarginTop=lastBlock?.compHdr?'margin-top:1.5mm;':'';
+        const hdrHtml=tOpen(subMarginTop+'margin-bottom:0')+hdrRow(cc,cl,sub.label)+tClose();
+        // Push a hidden hdr-only block so the ruler can measure it (cap at 7mm = PDF HDR)
+        const hdrBlock={html:hdrHtml, hdrOnly:true, hdrHmm:0, capMm:5.5, hmm:5.5};
+        blocks.push(hdrBlock);
+        // Header as separate block (so page-break can happen after it)
+        blocks.push({html: tOpen(subMarginTop+'margin-bottom:0')+hdrRow(cc,cl,sub.label)+tClose(), subHdr:true, hdrBlock, hmm:5.5, _isHdr:true});
+        blocks.push({html: tOpen('margin-bottom:0')+indRow(getIndText(sub.id,si[0],sub))+tClose(), subStart:true, hdrBlock, _indText:getIndText(sub.id,si[0],sub)});
+        // Remaining rows: each as its own block (continuation of same table visually)
+        for(let ri=1;ri<si.length;ri++){
+          blocks.push({html: tOpen('margin-bottom:'+(ri===si.length-1?'1':'0')+'mm')+indRow(getIndText(sub.id,si[ri],sub))+tClose(), subCont:true, hdrBlock, _indText:getIndText(sub.id,si[ri],sub)});
+        }
+      });
+    });
+
+    // Legend
+    blocks.push({html:'<div style="font-size:1.94mm;color:#AAA;font-style:italic;margin:1mm 0 2.5mm 0">-- nicht genügend · - genügend · + gut · ++ sehr gut</div>'});
+
+    // ── Gesamtbeurteilung ──
+    let gH='<div style="border:0.4mm solid #222;border-radius:0.5mm;overflow:hidden;margin-top:7mm">';
+    gH+='<div style="font-weight:800;font-size:3mm;color:#222;padding:1.5mm 2mm;border-bottom:0.15mm solid #DDD">GESAMTBEURTEILUNG</div>';
+    gH+='<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
+      +'<colgroup><col style="width:52%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>';
+    // grades header
+    // Gesamt row
+    gH+='<tr><td style="border-top:0.15mm solid #DDD;background:#F7F7F5;padding:1mm"></td>';
+    GRADES.forEach(l=>gH+='<td style="text-align:center;border-left:0.15mm solid #DDD;background:#F7F7F5;font-weight:700;font-size:3mm;padding:1mm 0">'+l+'</td>');
+    gH+='</tr>';
+    // comp rows
+    active.forEach(comp=>{
+      const bg=colorMode?dcLight(comp.colorLight):'#F8F8F6';
+      gH+='<tr><td style="border-top:0.15mm solid #DDD;padding:1.2mm 2mm;font-weight:700;font-size:2.3mm;color:'+dc(comp.color)+'">'+comp.label
+        +' <span style="font-weight:400;color:#AAA;font-size:1.94mm">('+comp.shortLabel+')</span></td>';
+      for(let c=0;c<4;c++)gH+='<td style="text-align:center;border-top:0.15mm solid #DDD;border-left:0.15mm solid #DDD;background:'+bg+';font-size:3mm;color:#BBB">'+CB+'</td>';
+      gH+='</tr>';
+    });
+    // Gesamt row (conditional)
+    if(showGesamt){
+      gH+='<tr><td style="border-top:0.3mm solid #999;background:#F7F7F5;padding:1.5mm 2mm;font-weight:800;font-size:3mm;color:#222">GESAMT</td>';
+      for(let c=0;c<4;c++)gH+='<td style="text-align:center;border-top:0.3mm solid #999;border-left:0.15mm solid #DDD;background:#F7F7F5;font-size:3.5mm;color:#888">'+CB+'</td>';
+      gH+='</tr>';
+    }
+    gH+='</table></div>';
+    const summaryH=8+6+active.length*7.5+(showGesamt?7:0)+11; // TH+HH+rows+TOTH+margin
+    blocks.push({_pdfH:summaryH, html:gH});
+  }
+
+  // ── Reflexion page ──
+  const reflBlocks=[];
+  if(total>0&&showRefl){
+    // Title
+    reflBlocks.push({html:'<div style="margin-bottom:2mm;padding-bottom:2mm;border-bottom:0.5mm solid #222">'
+      +'<div style="font-size:4.94mm;font-weight:800;color:#222">REFLEXION &amp; BEGRÜNDUNG</div>'
+      +'<div style="font-size:2.82mm;color:#888;margin-top:0.5mm">'+esc(title)+'</div></div>'});
+    // Name
+    reflBlocks.push({html:'<div style="display:flex;align-items:flex-end;gap:1mm;margin-bottom:2mm;padding-top:1mm">'
+      +'<span style="font-size:2.65mm;font-weight:700;color:#444;white-space:nowrap">Name:</span>'
+      +'<span style="flex:1;border-bottom:0.25mm solid #888;max-width:50mm"></span></div>'});
+    // Hint
+    reflBlocks.push({html:'<div style="font-size:1.94mm;color:#AAA;font-style:italic;margin-bottom:2mm">'
+      +'Begründe pro Kompetenz in 1–2 Sätzen, warum du dir diese Stufe gibst. Ehrlichkeit wird belohnt!</div>'});
+    // Comp boxes — mirror drawReflComp: TOP_PAD=1.5, TITLE_H=5, GAP=5, LINE_SPACING=8, N_LINES=3, BOT_PAD=3
+    active.forEach(comp=>{
+      if(!comp.subs.some(s=>(selections[s.id]||[]).length>0))return;
+      const bc=colorMode?dc(comp.color):'#999999';
+      let b='<div style="border:0.15mm solid #D0D0CE;border-left:0.8mm solid '+bc
+        +';border-radius:1mm;padding:1.5mm 2.5mm 3mm 2.5mm;margin-bottom:2mm">'
+        +'<div style="font-weight:700;font-size:2.65mm;color:'+bc+';margin-bottom:5mm;padding-bottom:0">'
+        +comp.label+' <span style="font-weight:400;color:#AAA;font-size:2.1mm;font-style:italic">('+comp.shortLabel+')</span></div>';
+      for(let i=0;i<3;i++)b+='<div style="border-bottom:0.15mm solid #DDD;height:8mm'+(i<2?';margin-bottom:0':'')+'"></div>';
+      b+='</div>';
+      reflBlocks.push({html:b});
+    });
+
+    // Gesprächsblock — mirror drawGespBlock: same as refl but N_LINES=4, yellow/grey bg
+    if(showGesp){
+      const gBg=colorMode?'#FFFBEB':'#F5F5F3',gBo=colorMode?'#F59E0B':'#999',gLn=colorMode?'#FDE68A':'#DDD';
+      let g='<div style="background:'+gBg+';border:0.3mm solid '+gBo+';border-radius:1mm;padding:1.5mm 2.5mm 3mm 2.5mm;margin-top:2mm">'
+        +'<div style="font-weight:700;font-size:2.65mm;color:#222;margin-bottom:5mm">2-MINUTEN-GESPRÄCH (Lehrperson)'
+        +'<span style="display:block;font-weight:400;font-size:1.94mm;color:#AAA;font-style:italic;margin-top:0.5mm">Kurze Notizen / Abweichungen zur Selbsteinschätzung:</span></div>';
+      for(let i=0;i<4;i++)g+='<div style="border-bottom:0.15mm solid '+gLn+';height:8mm'+(i<3?';margin-bottom:0':'')+'"></div>';
+      g+='</div>';
+      reflBlocks.push({html:g});
+    }
+  }
+  // ── Calculate block heights using jsPDF text metrics (exact match) ──
+  const PAGE_H_MM=257;
+  const PDF_HDR=5, PDF_LINE_H=3.2, PDF_PAD_V=2;
+  const PDF_COL_W=166*0.52-5;
+  const PDF_FS_IND=5.5;
+
+  // _mdoc already created above
+  _mdoc.setFont('helvetica','normal');
+  _mdoc.setFontSize(PDF_FS_IND);
+  function pdfWrapLines(text){
+    if(!text) return 1;
+    return _mdoc.splitTextToSize(text, PDF_COL_W).length;
+  }
+
+  const allBlocks=[...blocks.map(b=>({...b,page:'main'})),...reflBlocks.map(b=>({...b,page:'refl'}))];
+  allBlocks.forEach(b=>{
+    if(b.hdrOnly){b.hmm=Math.min(PDF_HDR, b.capMm||PDF_HDR);return;}
+    if(b.compHdr){b.hmm=7;return;} // 5mm bar + 1.5mm gap
+    if(b.subHdr){b.hmm=PDF_HDR;return;}
+    if(b.subStart||b.subCont){
+      const text=b._indText||'';
+      const nLines=pdfWrapLines(text);
+      const rowH=nLines*PDF_LINE_H+PDF_PAD_V*2;
+      b.hmm=Math.max(PDF_HDR, rowH);
+    } else {
+      b.hmm=b._pdfH||10;
+    }
+  });
+
+  const mainBlocks=allBlocks.filter(b=>b.page==='main');
+  const reflBlocksF=allBlocks.filter(b=>b.page==='refl');
+
+  // First pass: render with standard PAGE_BOTTOM
+  let PAGE_BOTTOM_CORRECTED=276;
+  function doRender(pb){
+    function paginate(list){
+      const MT=22;
+      const pages=[];
+      let cur=[], pageY=MT;
+      function newPage(){ pages.push(cur); cur=[]; pageY=MT; }
+      list.forEach((b, bi)=>{
+        if(b.hdrOnly) return;
+        if(b.compHdr){
+          let ni=bi+1; while(ni<list.length && list[ni].hdrOnly) ni++;
+          const firstSubHdr=list[ni];
+          let ni2=ni+1; while(ni2<list.length && list[ni2].hdrOnly) ni2++;
+          const firstSubHdr2=list[ni2];
+          let ni3=ni2+1; while(ni3<list.length && list[ni3].hdrOnly) ni3++;
+          const firstRow=list[ni3];
+          const needed=b.hmm+(firstSubHdr?firstSubHdr.hmm:0)+(firstSubHdr2?firstSubHdr2.hmm:0)+(firstRow?firstRow.hmm:0);
+          if(pageY+needed>pb && cur.length>0) newPage();
+          cur.push(b.html); pageY+=b.hmm+2;
+          return;
+        }
+        if(b.subHdr){
+          let ni=bi+1; while(ni<list.length && list[ni].hdrOnly) ni++;
+          const nextB=list[ni];
+          const needed=b.hmm+(nextB?nextB.hmm:0);
+          if(pageY+needed>pb && cur.length>0) newPage();
+          cur.push(b.html); pageY+=b.hmm;
+          return;
+        }
+        if(b.subStart){
+          cur.push(b.html); pageY+=b.hmm;
+          let ni=bi+1; while(ni<list.length&&list[ni].hdrOnly)ni++;
+          const nR=list[ni];
+          if(!nR||nR.subHdr||nR.type) pageY+=2.5;
+          return;
+        }
+        if(b.subCont){
+          const willBreak=pageY+b.hmm>pb && cur.length>0;
+          if(willBreak){
+            newPage();
+            if(b.hdrBlock){ cur.push(b.hdrBlock.html); pageY+=b.hdrBlock.hmm||PDF_HDR; }
+          }
+          cur.push(b.html); pageY+=b.hmm;
+          if(!willBreak){
+            let ni=bi+1; while(ni<list.length&&list[ni].hdrOnly)ni++;
+            const nR=list[ni];
+            if(!nR||nR.subHdr||nR.type) pageY+=2.5;
+          }
+          return;
+        }
+        if(pageY+b.hmm>pb && cur.length>0) newPage();
+        cur.push(b.html); pageY+=b.hmm;
+      });
+      if(cur.length) pages.push(cur);
+      return pages;
+    }
+    const mP=paginate(mainBlocks);
+    const rP=paginate(reflBlocksF);
+    return [...mP,...rP];
+  }
+
+  const allPages=doRender(PAGE_BOTTOM_CORRECTED);
+  window._lastPages=allPages;
+  let out='<div class="a4-wrapper">';
+  allPages.forEach((pg,i)=>{out+='<div class="a4-frame"><div class="a4-page-label">Seite '+(i+1)+'</div><div class="a4-inner">'+pg.join('')+'</div></div>';});
+  out+='</div>';
+  document.getElementById('preview').innerHTML=out;
+  setTimeout(scaleA4Pages,30);
+}
+
+function scaleA4Pages(){
+  const frames=document.querySelectorAll('.a4-frame');if(!frames.length)return;
+
+  // Measure reference sizes
+  const mmW=document.createElement('div');mmW.style.cssText='position:absolute;visibility:hidden;width:210mm;height:1px';document.body.appendChild(mmW);const nW=mmW.offsetWidth;mmW.remove();
+  const mmH=document.createElement('div');mmH.style.cssText='position:absolute;visibility:hidden;height:297mm;width:1px';document.body.appendChild(mmH);const nH=mmH.offsetHeight;mmH.remove();
+
+  // Calculate horizontal scale (fit frame width)
+  let minS=Infinity;
+  frames.forEach(frame=>{
+    const inner=frame.querySelector('.a4-inner');if(!inner)return;
+    inner.style.transform='none';void inner.offsetHeight;
+    const s=frame.clientWidth/nW;if(s<minS)minS=s;
+  });
+
+  frames.forEach(frame=>{
+    const inner=frame.querySelector('.a4-inner');if(!inner)return;
+    inner.style.transform='none';void inner.offsetHeight;
+
+    // Measure actual rendered height of this page's content
+    const rawH=inner.scrollHeight;
+    // Target height in px = 297mm in px
+    const scaleY=rawH>0?nH/rawH:1;
+    // Clamp: only shrink, never grow (scaleY > 1 means content is shorter than page = fine)
+    const sy=Math.min(1, scaleY);
+
+    const fW=frame.clientWidth;
+    const ox=(fW-nW*minS)/2;
+    inner.style.transform=`translateX(${ox}px) scale(${minS}, ${minS*sy})`;
+    inner.style.transformOrigin='top left';
+    frame.style.height=(nH*minS)+'px';
+  });
+}
+
+// jsPDF DIRECT RENDERING
+async function generatePDF(){
+  const btn=document.getElementById('btn-pdf'),ov=document.getElementById('pdf-overlay');
+  btn.disabled=true;ov.classList.add('active');
+  await new Promise(r=>setTimeout(r,60));
+  try{
+    const {jsPDF}=window.jspdf;
+    function pdfSafe(str){
+      return String(str||'')
+        .replace(/₀/g,'0').replace(/₁/g,'1').replace(/₂/g,'2').replace(/₃/g,'3')
+        .replace(/₄/g,'4').replace(/₅/g,'5').replace(/₆/g,'6').replace(/₇/g,'7')
+        .replace(/₈/g,'8').replace(/₉/g,'9')
+        .replace(/⁰/g,'0').replace(/¹/g,'1').replace(/²/g,'2').replace(/³/g,'3')
+        .replace(/⁴/g,'4').replace(/⁵/g,'5').replace(/⁶/g,'6').replace(/⁷/g,'7')
+        .replace(/⁸/g,'8').replace(/⁹/g,'9')
+        .replace(/[^\x00-\xFF]/g,'?');
+    }
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const _origText=doc.text.bind(doc);
+    doc.text=function(text,...args){
+      if(typeof text==='string') text=pdfSafe(text);
+      else if(Array.isArray(text)) text=text.map(t=>typeof t==='string'?pdfSafe(t):t);
+      if(text===undefined||text===null||text===''){text=' ';}
+      return _origText(text,...args);
+    };
+    const PW=210,ML=22,MR=22,MT=22,MB=18,CW=PW-ML-MR,PH=297;
+    const usableH=PH-MT-MB;
+
+    const title=document.getElementById('docTitle').value||'CHALLENGE-BEURTEILUNG';
+    const subtitle=document.getElementById('docSubtitle').value||'';
+    const school=document.getElementById('schoolName').value;
+    const assignment=document.getElementById('assignmentText').value;
+    const active=getActiveComps();
+    let total=0;Object.values(selections).forEach(a=>total+=a.length);
+
+    function sf(hex){const[r,g,b]=hexToRgb(hex);doc.setFillColor(r,g,b);}
+    function ss(hex){const[r,g,b]=hexToRgb(hex);doc.setDrawColor(r,g,b);}
+    function stc(hex){
+      const map={'white':[255,255,255],'#FFF':[255,255,255],'#FFFFFF':[255,255,255],
+        '#111':[17,17,17],'#111111':[17,17,17],
+        '#222':[34,34,34],'#222222':[34,34,34],
+        '#333':[51,51,51],'#333333':[51,51,51],
+        '#444':[68,68,68],'#444444':[68,68,68],
+        '#555':[85,85,85],'#555555':[85,85,85],
+        '#666':[102,102,102],'#666666':[102,102,102],
+        '#777':[119,119,119],'#777777':[119,119,119],
+        '#888':[136,136,136],'#888888':[136,136,136],
+        '#999':[153,153,153],'#999999':[153,153,153],
+        '#AAA':[170,170,170],'#AAAAAA':[170,170,170],
+        '#BBB':[187,187,187],'#BBBBBB':[187,187,187],
+        '#CCC':[204,204,204],'#CCCCCC':[204,204,204],
+        '#DDD':[221,221,221],'#DDDDDD':[221,221,221],
+        '#EEE':[238,238,238],'#EEEEEE':[238,238,238],
+        '#8A8780':[138,135,128]};
+      if(map[hex])doc.setTextColor(...map[hex]);
+      else{const[r,g,b]=hexToRgb(hex);doc.setTextColor(r,g,b);}
+    }
+    function wrap(text,maxW,fs){doc.setFontSize(fs);return doc.splitTextToSize(pdfSafe(text||' '),maxW);}
+    function drawCB(x,y,sz=3.2){doc.setLineWidth(0.2);ss('#CCCCCC');doc.setFillColor(255,255,255);doc.rect(x,y,sz,sz,'S');}
+
+    let pageY=MT;
+    const HDR_H=5.5; // shared row/header height in PDF
+    function newPage(){doc.addPage();pageY=MT;}
+    function checkSpace(need){if(pageY+need>MT+usableH)newPage();}
+
+    function drawTitleBlock(){
+      checkSpace(22);const x=ML,y=pageY;
+      doc.setFont('helvetica','bold');doc.setFontSize(18);stc('#111');
+      const tL=wrap(title,CW,18);let ty=y+7;tL.forEach(l=>{doc.text(l,x,ty);ty+=7;});
+      if(subtitle||school){doc.setFont('helvetica','normal');doc.setFontSize(9);stc('#888');doc.text(subtitle+(school?' \u00b7 '+school:''),x,ty+1);ty+=6;}
+      ty+=2;doc.setLineWidth(0.6);ss('#111111');doc.line(x,ty,x+CW,ty);pageY=ty+5;
+    }
+    function drawFieldsBlock(){
+      const af=getActiveFields();if(!af.length)return;
+      const hW=CW/2-2;
+      for(let r=0;r<af.length;r+=2){
+        checkSpace(8);const y=pageY+4;
+        doc.setFont('helvetica','bold');doc.setFontSize(8.5);stc('#333');
+        const lL=af[r].label+':';doc.text(lL,ML,y);const lW=doc.getTextWidth(lL)+2;
+        doc.setLineWidth(0.25);ss('#888888');doc.line(ML+lW,y+0.3,ML+hW,y+0.3);
+        if(af[r+1]){const rX=ML+CW/2+2,rL=af[r+1].label+':';doc.setFont('helvetica','bold');doc.setFontSize(8.5);stc('#333');doc.text(rL,rX,y);const rW=doc.getTextWidth(rL)+2;doc.setLineWidth(0.25);ss('#888888');doc.line(rX+rW,y+0.3,ML+CW,y+0.3);}
+        pageY+=8;
+      }
+      pageY+=2;
+    }
+    function drawAssignmentBlock(){
+      if(!assignment)return;
+      const x=ML,y=pageY;
+      const PAD=2.5, LABEL_H=4.5, GAP=1, LINE_H=3.6, FS=7, MAX_W=CW-6;
+
+      // Parse markdown into segments: {text, bold, italic, underline, sup, sub}
+      function parseSegments(raw){
+        const segs=[];
+        // Tokenize using regex that matches all markdown patterns
+        const re=/\*\*(.+?)\*\*|\*(.+?)\*|__(.+?)__|(\^)(.+?)\^|(~)(.+?)~/gs;
+        let last=0, m;
+        while((m=re.exec(raw))!==null){
+          if(m.index>last) segs.push({text:pdfSafe(raw.slice(last,m.index)),bold:false,italic:false,under:false,sup:false,sub:false});
+          if(m[1]!==undefined) segs.push({text:pdfSafe(m[1]),bold:true,italic:false,under:false,sup:false,sub:false});
+          else if(m[2]!==undefined) segs.push({text:pdfSafe(m[2]),bold:false,italic:true,under:false,sup:false,sub:false});
+          else if(m[3]!==undefined) segs.push({text:pdfSafe(m[3]),bold:false,italic:false,under:true,sup:false,sub:false});
+          else if(m[5]!==undefined) segs.push({text:pdfSafe(m[5]),bold:false,italic:false,under:false,sup:true,sub:false});
+          else if(m[7]!==undefined) segs.push({text:pdfSafe(m[7]),bold:false,italic:false,under:false,sup:false,sub:true});
+          last=re.lastIndex;
+        }
+        if(last<raw.length) segs.push({text:pdfSafe(raw.slice(last)),bold:false,italic:false,under:false,sup:false,sub:false});
+        return segs;
+      }
+
+      // Set font for a segment
+      function applyFont(seg){
+        const style=seg.bold&&seg.italic?'bolditalic':seg.bold?'bold':seg.italic?'italic':'normal';
+        const fs=seg.sup||seg.sub?FS*0.65:FS;
+        doc.setFont('helvetica',style);doc.setFontSize(fs);
+        return fs;
+      }
+
+      // Word-wrap segments into lines [{segments, totalH}]
+      function wrapSegments(segs){
+        const lines=[];
+        let curLine=[], curW=0;
+        segs.forEach(seg=>{
+          const fs=seg.sup||seg.sub?FS*0.65:FS;
+          doc.setFont('helvetica',seg.bold&&seg.italic?'bolditalic':seg.bold?'bold':seg.italic?'italic':'normal');
+          doc.setFontSize(fs);
+          // Split segment text into words
+          const words=seg.text.split(' ');
+          words.forEach((word,wi)=>{
+            const w=doc.getTextWidth(word+(wi<words.length-1?' ':''));
+            if(curW+w>MAX_W && curLine.length>0){
+              lines.push(curLine); curLine=[]; curW=0;
+            }
+            const part={...seg,text:word+(wi<words.length-1?' ':'')};
+            curLine.push(part); curW+=w;
+          });
+        });
+        if(curLine.length>0) lines.push(curLine);
+        return lines;
+      }
+
+      const segs=parseSegments(assignment);
+      const wrappedLines=wrapSegments(segs);
+      const boxH=PAD+LABEL_H+GAP+wrappedLines.length*LINE_H+PAD;
+      checkSpace(boxH+3);
+
+      doc.setFillColor(247,247,245);doc.setLineWidth(0.15);ss('#D0D0CE');doc.roundedRect(x,y,CW,boxH,1,1,'FD');
+      // Label
+      doc.setFont('helvetica','bold');doc.setFontSize(8);stc('#222');
+      doc.text('Auftrag:',x+3,y+PAD+LABEL_H/2,{baseline:'middle'});
+      // Render lines
+      stc('#444');
+      let ty=y+PAD+LABEL_H+GAP+LINE_H/2;
+      wrappedLines.forEach(line=>{
+        let cx=x+3;
+        line.forEach(seg=>{
+          const fs=applyFont(seg);
+          const segY=seg.sup?ty-LINE_H*0.3:seg.sub?ty+LINE_H*0.25:ty;
+          doc.text(seg.text,cx,segY,{baseline:'middle'});
+          // Underline
+          if(seg.under){
+            const tw=doc.getTextWidth(seg.text);
+            doc.setLineWidth(0.2);ss('#444444');
+            doc.line(cx,segY+fs*0.08,cx+tw,segY+fs*0.08);
+          }
+          cx+=doc.getTextWidth(seg.text);
+        });
+        ty+=LINE_H;
+      });
+      pageY=y+boxH+3;
+    }
+    function drawSubTable(comp,sub){
+      const si=selections[sub.id]||[];if(!si.length)return;
+      const colW=[CW*0.52,CW*0.12,CW*0.12,CW*0.12,CW*0.12];
+      const grades=['--','-','+','++'];
+      const FS_IND=5.5, LINE_H=3.2, PAD_V=2;
+      const HDR=HDR_H,COLOR=dc(comp.color),CL=dcLight(comp.colorLight);
+      const pageBottom=MT+usableH;
+
+      // Pre-calculate all row heights — minimum = HDR (same as header)
+      const rowData=si.map(idx=>{
+        const txt=getIndText(sub.id,idx,sub);
+        const lines=wrap(txt,colW[0]-5,FS_IND);
+        return {lines,rh:Math.max(HDR, lines.length*LINE_H+PAD_V*2)};
+      });
+
+      // Helper: draw the coloured table header at current pageY
+      function drawHeader(){
+        const x=ML,y=pageY;
+        sf(COLOR);doc.rect(x,y,colW[0],HDR,'F');
+        sf(CL);let cx=x+colW[0];for(let c=0;c<4;c++){doc.rect(cx,y,colW[c+1],HDR,'F');cx+=colW[c+1];}
+        const mid=y+HDR/2;
+        doc.setFont('helvetica','bold');doc.setFontSize(7);stc('white');
+        doc.text(sub.label,x+2,mid,{baseline:'middle'});
+        doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+        cx=x+colW[0];grades.forEach((l,c)=>{stc(COLOR);const lw=doc.getTextWidth(l);doc.text(l,cx+(colW[c+1]-lw)/2,mid,{baseline:'middle'});cx+=colW[c+1];});
+        pageY+=HDR;
+      }
+
+      // Helper: draw one indicator row at current pageY, return drawn height
+      function drawRow({lines,rh}){
+        const x=ML,ry=pageY;
+        doc.setLineWidth(0.15);ss('#DDDDDD');doc.line(x,ry,x+CW,ry);
+        doc.setFont('helvetica','normal');doc.setFontSize(FS_IND);stc('#444');
+        const textBlockH=(lines.length-1)*LINE_H;
+        const textStartY=ry+rh/2-textBlockH/2;
+        lines.forEach((l,li)=>doc.text(l,x+2,textStartY+li*LINE_H,{baseline:'middle'}));
+        let cx=x+colW[0];
+        for(let c=0;c<4;c++){
+          doc.setLineWidth(0.15);ss('#DDDDDD');doc.line(cx,ry,cx,ry+rh);
+          const sz=3.2;drawCB(cx+(colW[c+1]-sz)/2,ry+(rh-sz)/2,sz);
+          cx+=colW[c+1];
+        }
+        pageY+=rh;
+      }
+
+      // Decide: does header + at least 1 row fit on current page?
+      const firstRowH=rowData.length>0?rowData[0].rh:0;
+      if(pageY+HDR+firstRowH>pageBottom) newPage();
+
+      // Track where each "segment" (header..rows) starts so we can draw the outer border
+      let segStartY=pageY;
+      drawHeader();
+
+      rowData.forEach((row,ri)=>{
+        // Does this row still fit?
+        console.log('PDF ROW pageY='+pageY.toFixed(1)+' +'+row.rh.toFixed(1)+' pb='+pageBottom.toFixed(1)+' break='+(pageY+row.rh>pageBottom));
+        if(pageY+row.rh>pageBottom){
+          // Close current segment with a border
+          doc.setLineWidth(0.15);ss('#DDDDDD');doc.rect(ML,segStartY,CW,pageY-segStartY,'S');
+          // New page — redraw header (continuation)
+          newPage();
+          segStartY=pageY;
+          drawHeader();
+        }
+        drawRow(row);
+      });
+
+      // Close final segment
+      doc.setLineWidth(0.15);ss('#DDDDDD');doc.rect(ML,segStartY,CW,pageY-segStartY,'S');
+      pageY+=2.5;
+    }
+    function drawLegend(){
+      checkSpace(6);doc.setFont('helvetica','italic');doc.setFontSize(5.5);stc('#AAAAAA');
+      doc.text('-- nicht gen\u00fcgend  \u00b7  - gen\u00fcgend  \u00b7  + gut  \u00b7  ++ sehr gut',ML,pageY+3.5);pageY+=7;
+    }
+    function drawSummaryBlock(){
+      const colW=[CW*0.52,CW*0.12,CW*0.12,CW*0.12,CW*0.12];
+      const grades=['--','-','+','++'];
+      const TH=8,HH=6,RH=7.5,TOTH=7;
+      const tH=HH+active.length*RH+(showGesamt?TOTH:0);
+      const boxH=TH+tH;
+      checkSpace(boxH+4);const x=ML,y=pageY;
+
+      const LW=0.4, INSET=LW/2;
+      const ix=x+INSET, iy=y+INSET, iw=CW-LW, ih=boxH-LW;
+
+      const ty=y+TH;
+      const totY=ty+HH+active.length*RH;
+
+      // ── 1. Fills ──
+      doc.setFillColor(247,247,245);
+      doc.rect(ix, ty, iw, HH, 'F');
+
+      active.forEach((comp,ri)=>{
+        const ry=ty+HH+ri*RH;
+        sf(colorMode?dcLight(comp.colorLight):'#F8F8F6');
+        doc.rect(x+colW[0], ry, CW-colW[0]-INSET, RH, 'F');
+      });
+
+      if(showGesamt){
+        doc.setFillColor(247,247,245);
+        doc.rect(ix, totY, iw, TOTH-INSET, 'F');
+      }
+
+      // ── 2. Text ──
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);stc('#222');
+      doc.text('GESAMTBEURTEILUNG',x+3,y+TH/2,{baseline:'middle'});
+
+      let cx=x+colW[0];
+      const HDR_MID=ty+HH/2;
+      grades.forEach((l,c)=>{
+        doc.setFont('helvetica','bold');doc.setFontSize(8.5);stc('#555');
+        const lw=doc.getTextWidth(l);
+        doc.text(l,cx+(colW[c+1]-lw)/2,HDR_MID,{baseline:'middle'});
+        cx+=colW[c+1];
+      });
+
+      active.forEach((comp,ri)=>{
+        const ry=ty+HH+ri*RH;
+        const rowMid=ry+RH/2;
+        doc.setFont('helvetica','bold');doc.setFontSize(6.5);
+        stc(colorMode?dc(comp.color):'#333333');
+        doc.text(comp.label,x+2,rowMid,{baseline:'middle'});
+        const lw=doc.getTextWidth(comp.label);
+        doc.setFont('helvetica','normal');doc.setFontSize(5.5);stc('#AAAAAA');
+        doc.text('('+comp.shortLabel+')',x+2+lw+1.5,rowMid,{baseline:'middle'});
+        cx=x+colW[0];
+        for(let c=0;c<4;c++){const sz=3.5;drawCB(cx+(colW[c+1]-sz)/2,ry+(RH-sz)/2,sz);cx+=colW[c+1];}
+      });
+
+      if(showGesamt){
+        const totMid=totY+TOTH/2;
+        doc.setFont('helvetica','bold');doc.setFontSize(8.5);stc('#222');
+        doc.text('GESAMT',x+2,totMid,{baseline:'middle'});
+        cx=x+colW[0];
+        for(let c=0;c<4;c++){const sz=4.2;drawCB(cx+(colW[c+1]-sz)/2,totY+(TOTH-sz)/2,sz);cx+=colW[c+1];}
+      }
+
+      // ── 3. Internal lines ──
+      doc.setLineWidth(0.15);ss('#DDDDDD');
+      doc.line(x,y+TH,x+CW,y+TH);
+      // Vertical dividers in header row
+      cx=x+colW[0];grades.forEach((l,c)=>{doc.line(cx,ty,cx,ty+HH);cx+=colW[c+1];});
+      // Horizontal row separators + vertical dividers per comp row
+      active.forEach((comp,ri)=>{
+        const ry=ty+HH+ri*RH;
+        doc.line(x,ry,x+CW,ry);
+        cx=x+colW[0];for(let c=0;c<4;c++){doc.line(cx,ry,cx,ry+RH);cx+=colW[c+1];}
+      });
+      if(showGesamt){
+        // Vertical dividers in total row
+        cx=x+colW[0];for(let c=0;c<4;c++){doc.line(cx,totY,cx,totY+TOTH);cx+=colW[c+1];}
+        // ── 4. Thick separator above GESAMT ──
+        doc.setLineWidth(0.3);ss('#999999');
+        doc.line(x,totY,x+CW,totY);
+      }
+
+      // ── 5. Outer border LAST (always on top) ──
+      doc.setLineWidth(LW);ss('#222222');
+      doc.rect(x,y,CW,boxH,'S');
+
+      pageY=y+boxH+4;
+    }
+    function drawReflTitle(){
+      checkSpace(18);const x=ML,y=pageY;
+      doc.setFont('helvetica','bold');doc.setFontSize(14);stc('#222');doc.text('REFLEXION & BEGR\u00dcNDUNG',x,y+5.5);
+      doc.setFont('helvetica','normal');doc.setFontSize(8);stc('#888');doc.text(title,x,y+10);
+      doc.setLineWidth(0.5);ss('#222222');doc.line(x,y+13,x+CW,y+13);pageY=y+17;
+    }
+    function drawReflName(){
+      checkSpace(12);doc.setFont('helvetica','bold');doc.setFontSize(7.5);stc('#444');doc.text('Name:',ML,pageY+5.5);
+      const lw=doc.getTextWidth('Name:')+1.5;doc.setLineWidth(0.25);ss('#888888');doc.line(ML+lw,pageY+5.8,ML+58,pageY+5.8);pageY+=12;
+    }
+    function drawReflHint(){
+      checkSpace(8);doc.setFont('helvetica','italic');doc.setFontSize(5.5);stc('#AAAAAA');
+      doc.text('Begr\u00fcnde pro Kompetenz in 1\u20132 S\u00e4tzen, warum du dir diese Stufe gibst. Ehrlichkeit wird belohnt!',ML,pageY+3.5);pageY+=8;
+    }
+    function drawReflComp(comp){
+      // Layout: title row, then 3 writing lines evenly spaced, tight bottom
+      // TOP_PAD: space above title
+      // TITLE_H: height of title row
+      // GAP: space between title bottom and first line — generous for writing room
+      // LINE_SPACING: distance between lines (= writing row height)
+      // BOT_PAD: space below last line to box edge — just enough to not feel cramped
+      const LINE_SPACING=8, N_LINES=3, TOP_PAD=1.5, TITLE_H=5, GAP=5, BOT_PAD=3;
+      const BH=TOP_PAD+TITLE_H+GAP+(N_LINES-1)*LINE_SPACING+BOT_PAD;
+      checkSpace(BH+3);const x=ML,y=pageY;
+      doc.setFillColor(255,255,255);doc.setLineWidth(0.15);ss('#D0D0CE');doc.roundedRect(x,y,CW,BH,1,1,'FD');
+      sf(colorMode?dc(comp.color):'#999999');doc.rect(x,y,1.5,BH,'F');
+      const titleY=y+TOP_PAD+TITLE_H/2;
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);stc(colorMode?dc(comp.color):'#222222');doc.text(comp.label,x+4,titleY,{baseline:'middle'});
+      const lw=doc.getTextWidth(comp.label);doc.setFont('helvetica','italic');doc.setFontSize(5.5);stc('#AAAAAA');doc.text('('+comp.shortLabel+')',x+4+lw+1.5,titleY,{baseline:'middle'});
+      const firstLineY=y+TOP_PAD+TITLE_H+GAP;
+      for(let i=0;i<N_LINES;i++){doc.setLineWidth(0.15);ss('#DDDDDD');doc.line(x+4,firstLineY+i*LINE_SPACING,x+CW-2,firstLineY+i*LINE_SPACING);}
+      pageY=y+BH+2;
+    }
+    function drawGespBlock(){
+      // Same layout as drawReflComp
+      const LINE_SPACING=8, N_LINES=4, TOP_PAD=1.5, TITLE_H=5, GAP=5, BOT_PAD=3;
+      const BH=TOP_PAD+TITLE_H+GAP+(N_LINES-1)*LINE_SPACING+BOT_PAD;
+      checkSpace(BH+3);const x=ML,y=pageY;
+      const BG=colorMode?[255,251,235]:[245,245,243];
+      doc.setFillColor(...BG);doc.setLineWidth(0.3);ss(colorMode?'#F59E0B':'#999999');
+      doc.roundedRect(x,y,CW,BH,1,1,'FD');
+      const titleY=y+TOP_PAD+TITLE_H/2;
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);stc('#222');
+      doc.text('2-MINUTEN-GESPR\u00c4CH (Lehrperson)',x+4,titleY,{baseline:'middle'});
+      doc.setFont('helvetica','italic');doc.setFontSize(5.5);stc('#AAAAAA');
+      doc.text('Kurze Notizen / Abweichungen zur Selbsteinsch\u00e4tzung:',x+4,y+TOP_PAD+TITLE_H+2,{baseline:'top'});
+      const firstLineY=y+TOP_PAD+TITLE_H+GAP;
+      const LC=colorMode?[253,230,138]:[221,221,221];
+      for(let i=1;i<N_LINES;i++){
+        doc.setLineWidth(0.15);doc.setDrawColor(...LC);
+        doc.line(x+4,firstLineY+i*LINE_SPACING,x+CW-3,firstLineY+i*LINE_SPACING);
+      }
+      pageY=y+BH+3;
+    }
+
+    function drawCompHeader(comp, firstSub){
+      const CHH=5.5, GAP=1.5;
+      // Calculate min needed: compHdr + gap + subHdr + first row
+      let firstRowH=10;
+      if(firstSub){
+        const si=selections[firstSub.id]||[];
+        if(si.length>0){
+          const txt=getIndText(firstSub.id,si[0],firstSub);
+          const lines=wrap(txt,CW*0.52-5,5.5);
+          firstRowH=Math.max(HDR_H, lines.length*3.2+2.5*2);
+        }
+      }
+      checkSpace(CHH+GAP+HDR_H+firstRowH);
+      const x=ML,y=pageY;
+      const [r,g,b]=hexToRgb(dc(comp.color));
+      doc.setFillColor(r,g,b);
+      doc.rect(x,y,CW,CHH,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+      doc.setTextColor(255,255,255);
+      doc.text(comp.label,x+2,y+CHH/2,{baseline:'middle'});
+      pageY=y+CHH+GAP;
+    }
+
+    drawTitleBlock();drawFieldsBlock();drawAssignmentBlock();
+    if(total===0){doc.setFont('helvetica','italic');doc.setFontSize(9);stc('#BBBBBB');doc.text('Keine Indikatoren ausgew\u00e4hlt.',ML,pageY+8);}
+    else{
+      active.forEach(comp=>{
+        const hasSubs=comp.subs.some(s=>(selections[s.id]||[]).length>0);
+        if(!hasSubs)return;
+        const firstSub=comp.subs.find(s=>(selections[s.id]||[]).length>0);
+        drawCompHeader(comp, firstSub);
+        comp.subs.forEach(sub=>{if((selections[sub.id]||[]).length>0)drawSubTable(comp,sub);});
+      });
+      drawLegend();drawSummaryBlock();
+      if(showRefl){
+        newPage();
+        drawReflTitle();drawReflName();drawReflHint();
+        active.forEach(comp=>{if(comp.subs.some(s=>(selections[s.id]||[]).length>0))drawReflComp(comp);});
+        if(showGesp) drawGespBlock();
+      }
+    }
+
+    const t2=document.getElementById('docTitle').value||'Challenge-Beurteilung';
+    const st2=document.getElementById('docSubtitle').value||'';
+    const fn=(st2?t2+' - '+st2:t2).replace(/[\/\\?%*:|"<>]/g,'-');
+    doc.save(fn+'.pdf');
+
+  }catch(err){console.error(err);alert('Fehler: '+err.message);}
+  finally{document.getElementById('pdf-overlay').classList.remove('active');document.getElementById('btn-pdf').disabled=false;}
+}
+
+render();
+loadFromUrl();
+window.addEventListener('resize',()=>setTimeout(scaleA4Pages,100));
+window.addEventListener('beforeunload',e=>{let t=0;Object.values(selections).forEach(a=>t+=a.length);if(t>0){e.preventDefault();e.returnValue='';}});
+</script>
+</body>
+</html>

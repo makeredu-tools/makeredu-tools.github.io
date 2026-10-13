@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MakerEdu Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --bg: #F5F4F1;
+  --surface: #FFFFFF;
+  --border: #E2E0DC;
+  --border-lt: #EEEDE9;
+  --text: #1A1A1A;
+  --dim: #8A8680;
+  --dim2: #B5B2AC;
+  --r1: #DC2626;
+  --r2: #D97706;
+  --r3: #059669;
+  --r4: #2563EB;
+  --r1-bg: #FEF2F2;
+  --r2-bg: #FFFBEB;
+  --r3-bg: #ECFDF5;
+  --r4-bg: #EFF6FF;
+  --shadow: 0 1px 4px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+  --radius: 8px;
+  --radius-sm: 5px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { max-width:100%; overflow-x:hidden; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; min-height:100dvh; }
+
+.app-header { background:var(--text); color:white; padding:0; height:52px; display:flex; align-items:center; position:sticky; top:0; z-index:200; }
+.app-header-inner { max-width:1400px; width:100%; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:12px; height:52px; position:relative; }
+.proj-item { display:flex; align-items:center; padding:10px 14px; cursor:pointer; gap:8px; font-size:13px; border-bottom:1px solid var(--border-lt); color:var(--text); }
+.proj-item:hover { background:var(--bg); }
+.proj-item.active { font-weight:600; }
+.proj-item.active::before { content:'✓'; color:var(--r3); font-size:11px; margin-right:2px; }
+.proj-name { flex:1; }
+.proj-delete { background:none; border:none; color:var(--dim2); cursor:pointer; font-size:11px; padding:2px 5px; border-radius:3px; transition:all 0.15s; line-height:1; }
+.proj-delete:hover { color:var(--r1); background:var(--r1-bg); }
+.proj-new { padding:10px 14px; font-size:13px; color:var(--dim); cursor:pointer; font-weight:500; }
+.proj-new:hover { background:var(--bg); color:var(--text); }
+.lbl-edit-wrap { display:flex; align-items:center; gap:6px; }
+.lbl-edit-input { font-size:13px; font-weight:600; font-family:var(--font); border:none; border-bottom:1.5px solid var(--border); background:transparent; outline:none; color:var(--text); width:120px; padding:1px 2px; }
+.lbl-edit-input:focus { border-bottom-color:var(--text); }
+.lbl-edit-icon { font-size:11px; color:var(--dim2); cursor:pointer; padding:2px 4px; border-radius:3px; }
+.lbl-edit-icon:hover { color:var(--text); background:var(--bg); }
+.app-header-link { display:flex; align-items:center; gap:10px; text-decoration:none; flex-shrink:0; opacity:1; transition:opacity 0.15s; }
+.app-header-link:hover { opacity:0.75; }
+.app-header-mark { width:28px; height:28px; background:#FFF; border-radius:6px; display:grid; place-items:center; color:#1A1A1A; font-weight:800; font-size:13px; flex-shrink:0; }
+.app-header-brand { color:#FFF; font-size:15px; font-weight:600; letter-spacing:-0.2px; }
+.app-header-sep { color:rgba(255,255,255,0.35); font-size:15px; margin:0 2px; }
+.app-header h1 { font-size:15px; font-weight:500; letter-spacing:-0.2px; color:rgba(255,255,255,0.6); flex:1; }
+.header-badge { font-size:10px; font-weight:500; background:rgba(255,255,255,0.15); padding:3px 9px; border-radius:20px; letter-spacing:0.5px; text-transform:uppercase; }
+
+.tabs { display:flex; background:var(--surface); border-bottom:1px solid var(--border); overflow-x:auto; }
+.tabs-inner { display:flex; max-width:1400px; width:100%; margin:0 auto; padding:0 24px; }
+.tab-btn { padding:14px 20px; font-size:13px; font-weight:500; color:var(--dim); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; transition:all 0.15s; font-family:var(--font); }
+.tab-btn:hover { color:var(--text); }
+.tab-btn.active { color:var(--text); border-bottom-color:var(--text); border-bottom-width:3px; }
+
+.main { padding:24px; max-width:1400px; margin:0 auto; }
+
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); box-sizing:border-box; width:100%; }
+.card-header { padding:16px 20px; border-bottom:1px solid var(--border-lt); display:flex; align-items:center; gap:10px; }
+.card-title { font-size:13px; font-weight:600; }
+.card-body { padding:20px; }
+
+.setup-grid { display:grid; grid-template-columns:repeat(var(--setup-cols, 1), 1fr); gap:20px; margin-bottom:20px; }
+
+.form-label { display:block; font-size:11px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:6px; }
+.form-input { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:var(--font); font-size:13px; color:var(--text); background:var(--bg); outline:none; transition:border-color 0.15s; }
+.form-input:focus { border-color:var(--text); background:white; }
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; font-size:13px; font-weight:500; border-radius:var(--radius-sm); border:none; cursor:pointer; font-family:var(--font); transition:all 0.15s; white-space:nowrap; }
+.btn-primary { background:var(--text); color:white; }
+.btn-primary:hover { background:#333; }
+.btn-secondary { background:var(--bg); color:var(--text); border:1px solid var(--border); }
+.btn-secondary:hover { border-color:var(--dim); }
+.btn-sm { padding:6px 12px; font-size:12px; }
+.btn-danger { background:#FEF2F2; color:var(--r1); border:1px solid #FECACA; }
+.btn-danger:hover { background:#FECACA; }
+
+.url-row { display:flex; gap:8px; align-items:flex-end; }
+.url-row .form-input { font-family:var(--mono); font-size:11px; }
+
+.ind-preview { margin-top:16px; }
+.comp-group { margin-bottom:10px; }
+.comp-group-header { display:flex; align-items:center; gap:8px; padding:7px 12px; border-radius:var(--radius-sm); margin-bottom:5px; }
+.comp-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.comp-group-label { font-size:12px; font-weight:600; }
+.comp-count-badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; margin-left:auto; }
+.ind-list { display:flex; flex-direction:column; gap:3px; padding-left:12px; }
+.ind-chip { font-size:11px; color:var(--dim); padding:4px 10px; background:var(--bg); border-radius:3px; border-left:2px solid var(--border); }
+
+.schueler-list { display:flex; flex-direction:column; gap:5px; }
+.schueler-item { display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border-lt); }
+.schueler-avatar { width:30px; height:30px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--dim); flex-shrink:0; }
+.schueler-name { font-size:13px; font-weight:500; flex:1; }
+.remove-btn { background:none; border:none; color:var(--dim2); cursor:pointer; font-size:13px; padding:4px 6px; border-radius:3px; transition:all 0.15s; line-height:1; }
+.remove-btn:hover { color:var(--r1); background:var(--r1-bg); }
+
+.lektion-item { display:flex; align-items:center; gap:12px; padding:11px 16px; border:1px solid var(--border-lt); border-radius:var(--radius-sm); background:var(--bg); margin-bottom:7px; }
+.lektion-num { width:30px; height:30px; border-radius:50%; background:var(--text); color:white; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+.section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.7px; color:var(--dim); margin-bottom:10px; }
+
+/* ERFASSUNG */
+.lektion-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.erfassung-layout { display:grid; grid-template-columns:220px 1fr; gap:16px; }
+@media(max-width:800px){.erfassung-layout{grid-template-columns:1fr;}}
+
+.schueler-sidebar { position:sticky; top:112px; height:fit-content; }
+.schueler-nav { display:flex; flex-direction:column; gap:2px; }
+.schueler-nav-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:var(--radius-sm); cursor:pointer; transition:all 0.12s; position:relative; }
+.schueler-nav-item:hover { background:var(--bg); }
+.schueler-nav-item.active { background:var(--text); color:white; }
+.schueler-nav-item.done::after { content:'✓'; position:absolute; right:8px; font-size:10px; color:var(--r3); }
+.schueler-nav-item.active.done::after { color:rgba(255,255,255,0.6); }
+.s-nav-avatar { width:26px; height:26px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--dim); flex-shrink:0; }
+.schueler-nav-item.active .s-nav-avatar { background:rgba(255,255,255,0.2); color:white; }
+.s-nav-name { font-size:12px; font-weight:500; }
+.s-nav-meta { font-size:10px; color:var(--dim); }
+.schueler-nav-item.active .s-nav-name { color:white; }
+.schueler-nav-item.active .s-nav-meta { color:rgba(255,255,255,0.6); }
+
+.ind-bewertung-list { display:flex; flex-direction:column; gap:6px; }
+.ind-bewertung-row { background:var(--bg); border:1px solid var(--border-lt); border-radius:var(--radius); padding:10px 12px; display:flex; align-items:center; gap:12px; }
+.ind-bewertung-left { display:flex; align-items:flex-start; gap:8px; flex:1; min-width:0; }
+.ind-domain-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+.ind-sub-label { font-size:10px; color:var(--dim); font-weight:500; margin-bottom:1px; }
+.ind-text { font-size:12px; line-height:1.4; }
+.rating-row { display:flex; gap:3px; flex-shrink:0; }
+.rating-btn { flex:none; width:30px; height:30px; font-size:12px; padding:0; }
+@media(max-width:600px){
+  .ind-bewertung-row { flex-direction:column; align-items:stretch; }
+  .rating-row { gap:4px; }
+  .rating-btn { flex:1; width:auto; height:36px; }
+}
+.rating-btn { flex:1; height:36px; padding:0; border:2px solid var(--border); border-radius:var(--radius-sm); background:white; cursor:pointer; font-family:var(--font); font-size:13px; font-weight:700; text-align:center; transition:all 0.12s; line-height:1; }
+.rating-btn:hover { border-color:var(--dim); }
+.rating-btn.r1 { border-color:var(--r1); background:var(--r1-bg); color:var(--r1); }
+.rating-btn.r2 { border-color:#F59E0B; background:var(--r2-bg); color:var(--r2); }
+.rating-btn.r3 { border-color:#10B981; background:var(--r3-bg); color:var(--r3); }
+.rating-btn.r4 { border-color:#3B82F6; background:var(--r4-bg); color:var(--r4); }
+.rating-btn.selected.sel-1 { background:var(--r1); color:white; border-color:var(--r1); }
+.rating-btn.selected.sel-2 { background:#F59E0B; color:white; border-color:#F59E0B; }
+.rating-btn.selected.sel-3 { background:#10B981; color:white; border-color:#10B981; }
+.rating-btn.selected.sel-4 { background:#3B82F6; color:white; border-color:#3B82F6; }
+.skip-btn { color:var(--dim); font-weight:400; }
+.skip-btn.selected { background:var(--border); border-color:var(--dim); color:var(--text); }
+
+.progress-bar-wrap { flex:1; max-width:300px; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.progress-bar-fill { height:100%; background:var(--text); border-radius:2px; transition:width 0.3s ease; }
+.nav-bottom { display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid var(--border-lt); gap:12px; }
+
+/* DASHBOARD */
+.dashboard-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+@media(max-width:900px){.dashboard-grid{grid-template-columns:1fr;}}
+.comp-columns-grid { display:grid; grid-template-columns:repeat(var(--comp-cols, 1), 1fr); gap:16px; align-items:start; }
+.tab-header-card { display:flex; align-items:center; gap:12px; padding:12px 18px; min-height:56px; margin-bottom:16px; flex-wrap:wrap; box-sizing:border-box; width:100%; overflow:visible; }
+.klasse-wrap { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+.proj-meta-card { display:flex; flex-direction:column; gap:10px; padding:12px 18px; margin-bottom:16px; }
+.proj-meta-row { display:flex; align-items:center; gap:12px; }
+
+.boxplot-section { margin-bottom:4px; }
+.boxplot-comp-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; margin:16px 0 4px; display:flex; align-items:center; gap:6px; }
+.boxplot-container { padding:8px 0; }
+.boxplot-row { display:flex; flex-direction:column; padding:12px 0; border-bottom:1px solid var(--border-lt); gap:6px; }
+.boxplot-row:last-of-type { border-bottom:none; }
+.boxplot-label { font-size:13px; font-weight:400; color:var(--text); line-height:1.4; }
+.boxplot-chart-row { display:flex; align-items:center; gap:8px; }
+.boxplot-chart { flex:1; height:36px; background:white; border-radius:6px; position:relative; border:1px solid var(--border); overflow:hidden; min-width:0; }
+.boxplot-scale { display:flex; position:relative; font-size:10px; color:var(--dim); height:16px; }
+.boxplot-chart-row { display:flex; align-items:flex-start; gap:8px; }
+.boxplot-scale span { position:absolute; transform:translateX(-50%); }
+.boxplot-scale span:nth-child(1){left:2%; transform:translateX(0);}
+.boxplot-scale span:nth-child(2){left:34%;}
+.boxplot-scale span:nth-child(3){left:66%;}
+.boxplot-scale span:nth-child(4){left:auto; right:0; transform:none;}
+.vorschlag-badge { flex-shrink:0; background:var(--border-lt); color:var(--muted); padding:4px 10px; border-radius:6px; font-size:13px; font-weight:700; min-width:36px; text-align:center; height:36px; display:flex; align-items:center; justify-content:center; }
+.verlauf-container { height:220px; position:relative; overflow:visible; width:100%; }
+canvas.verlauf-canvas { display:block; }
+@media(max-width:600px){
+  .main { padding:12px; }
+  .tabs { padding:0; }
+  .tabs-inner { padding:0 8px; }
+  .tab-btn { font-size:11px; padding:10px 8px; }
+  .dashboard-grid { grid-template-columns:1fr !important; }
+  .card-body { padding:12px; }
+  .card-header { padding:12px 14px; }
+  .verlauf-container { height:160px; }
+  .nav-bottom { flex-wrap:wrap; gap:8px; }
+  .lektion-item { flex-wrap:wrap; gap:6px; }
+  .schueler-select-bar { flex-direction:column; align-items:stretch; gap:6px; }
+  .schueler-select-bar select, .schueler-select-bar button { width:100%; max-width:100% !important; }
+  #db-schueler { max-width:100% !important; }
+  .boxplot-chart { height:32px; }
+}
+.boxplot-track { position:absolute; top:50%; left:2%; right:2%; height:1px; background:var(--border); transform:translateY(-50%); }
+.boxplot-box { position:absolute; top:25%; height:50%; background:rgba(91,155,213,0.2); border:1.5px solid #5B9BD5; border-radius:2px; }
+.boxplot-median { position:absolute; top:15%; height:70%; width:2px; background:var(--text); transform:translateX(-50%); border-radius:1px; }
+.boxplot-whisker { position:absolute; top:50%; height:1.5px; background:var(--dim); transform:translateY(-50%); }
+.boxplot-whisker-end { position:absolute; top:30%; height:40%; width:1.5px; background:var(--dim); transform:translateX(-50%); }
+
+.empty-state { text-align:center; padding:50px 20px; color:var(--dim); }
+.empty-state .em { font-size:36px; margin-bottom:10px; }
+.empty-state h3 { font-size:14px; font-weight:600; color:var(--text); margin-bottom:5px; }
+.empty-state p { font-size:12px; line-height:1.6; }
+
+.setup-required { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:55vh; text-align:center; gap:10px; }
+.setup-required .icon { font-size:44px; }
+.setup-required h2 { font-size:17px; font-weight:600; }
+.setup-required p { font-size:13px; color:var(--dim); max-width:340px; line-height:1.7; }
+
+.status-chip { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:12px; }
+.status-ok { background:#ECFDF5; color:#059669; }
+.status-warn { background:#FFFBEB; color:#D97706; }
+.status-err { background:#FEF2F2; color:#DC2626; }
+
+table.overview-table { width:100%; border-collapse:collapse; font-size:12px; }
+.overview-table th { background:var(--bg); padding:8px 12px; text-align:left; font-size:10px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); white-space:nowrap; }
+.overview-table th:first-child { white-space:normal; }
+.overview-table td { padding:8px 12px; border-bottom:1px solid var(--border-lt); vertical-align:middle; }
+.overview-table td:first-child { min-width:200px; }
+.overview-table td:not(:first-child) { white-space:nowrap; text-align:center; width:80px; }
+.overview-table tr:last-child td { border-bottom:none; }
+.overview-table tr:hover td { background:var(--bg); }
+.rating-dot { display:inline-block; width:20px; height:20px; border-radius:50%; font-size:9px; font-weight:700; color:white; text-align:center; line-height:20px; }
+
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--text); color:white; padding:10px 20px; border-radius:20px; font-size:13px; font-weight:500; z-index:9999; transition:transform 0.3s ease; pointer-events:none; white-space:nowrap; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast.error { background:var(--r1); }
+.toast.success { background:#059669; }
+
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; display:flex; align-items:center; justify-content:center; padding:20px; }
+.modal { background:white; border-radius:var(--radius); padding:24px; max-width:460px; width:100%; box-shadow:var(--shadow-md); }
+.modal h3 { font-size:15px; font-weight:600; margin-bottom:16px; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-header-inner">
+    <a href="https://makeredu-tools.github.io/" class="app-header-link">
+      <div class="app-header-mark">M</div>
+      <span class="app-header-brand">MakerEdu</span>
+    </a>
+    <span class="app-header-sep">›</span>
+    <h1>Tracker</h1>
+    <span class="header-badge" id="projekt-badge-btn" onclick="toggleProjectDropdown(event)" style="cursor:pointer;user-select:none;" id="projekt-badge">Kein Projekt</span>
+    <div id="project-dropdown" style="display:none;position:absolute;top:52px;right:24px;background:white;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);min-width:220px;z-index:300;overflow:hidden;"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tabs-inner">
+    <button class="tab-btn active" onclick="showTab('setup')">⚙ Setup</button>
+    <button class="tab-btn" onclick="showTab('erfassung')">📝 Erfassung</button>
+    <button class="tab-btn" onclick="showTab('dashboard')">📊 Auswertung</button>
+    <button class="tab-btn" onclick="showTab('daten')">💾 Daten</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- SETUP -->
+  <div id="tab-setup">
+    <!-- Setup Fortschritt & Banner -->
+    <div id="setup-progress-wrap" style="margin-bottom:16px"></div>
+    <!-- Projektname -->
+    <div class="card proj-meta-card">
+      <div class="proj-meta-row">
+        <label class="form-label" style="margin:0;white-space:nowrap;font-weight:600">Projektname</label>
+        <input type="text" class="form-input" id="projekt-name" placeholder="z.B. Brücken bauen" oninput="saveMeta()" style="flex:1;min-width:0">
+      </div>
+      <div class="proj-meta-row">
+        <label class="form-label" style="margin:0;white-space:nowrap;font-weight:600">Klasse</label>
+        <input type="text" class="form-input" id="klasse-input" placeholder="z.B. 3d" oninput="saveMeta()" style="width:90px">
+      </div>
+    </div>
+    <div class="setup-grid">
+      <div class="card">
+        <div class="card-header"><div class="card-title">1. MakerEdu-Generator-Link</div></div>
+        <div class="card-body">
+          <div class="url-row">
+            <input type="text" class="form-input" id="generator-url" placeholder="https://...?c=...">
+            <button class="btn btn-primary" onclick="loadFromGeneratorUrl()">Laden</button>
+          </div>
+          <div id="url-status" style="margin-top:10px;font-size:12px;color:var(--dim)">Füge den Link aus dem MakerEdu-Generator ein.</div>
+          <div id="ind-preview" class="ind-preview"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">2. Schüler:innen</div></div>
+        <div class="card-body">
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <input type="file" id="schueler-file" accept=".xlsx,.xls" style="display:none" onchange="importSchueler(event)">
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('schueler-file').click()">📥 Excel importieren</button>
+            <button class="btn btn-secondary btn-sm" onclick="addSchuelerManual()">+ Manuell</button>
+          </div>
+          <div style="font-size:11px;color:var(--dim);margin-bottom:12px">Spalte A = Vorname, Spalte B = Nachname (ab Zeile 2)</div>
+          <div id="schueler-list" class="schueler-list"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title lbl-edit-wrap">
+            <span id="lektionen-card-prefix">3. </span><input class="lbl-edit-input" id="lektionen-card-title" value="Lektion" oninput="onLblInput()" title="Bezeichnung anpassen">
+            <span class="lbl-edit-icon" onclick="document.getElementById('lektionen-card-title').focus()" title="Umbenennen">✏️</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="lektionen-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERFASSUNG -->
+  <div id="tab-erfassung" style="display:none">
+    <div id="erfassung-noop" class="setup-required" style="display:none">
+      <div class="icon">📋</div>
+      <h2>Setup noch nicht abgeschlossen</h2>
+      <p>Lade zuerst einen Generator-Link, importiere Schüler:innen und erstelle mindestens eine ${lbl()}.</p>
+      <button class="btn btn-primary" onclick="showTab('setup')">Zum Setup</button>
+    </div>
+    <div id="erfassung-content">
+      <!-- Lektions-Fortschritt -->
+      <div style="margin-bottom:16px">
+        <div class="card tab-header-card" style="flex-direction:column;height:auto;padding-top:10px;padding-bottom:10px">
+          <div style="display:flex;align-items:center;width:100%;gap:12px;flex-wrap:wrap">
+            <span id="lektion-waehlen-label" style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">Lektion wählen:</span>
+            <div style="margin-left:auto;display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;flex-shrink:0">
+              <button id="mode-btn-schueler" onclick="setErfassungMode('schueler')" style="padding:4px 10px;font-size:11px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);background:#2D2D2D;color:white;">👤 Schüler:in</button>
+              <button id="mode-btn-indikator" onclick="setErfassungMode('indikator')" style="padding:4px 10px;font-size:11px;font-weight:600;border:none;cursor:pointer;font-family:var(--font);background:none;color:var(--muted);">📋 Indikator</button>
+            </div>
+          </div>
+          <div id="lektionen-progress-bar" style="display:flex;flex-direction:column;gap:4px;width:100%;margin-top:8px"></div>
+        </div>
+        <div id="erfassung-banner" style="display:none"></div>
+      </div>
+      <!-- Modus: Nach Schüler:in -->
+      <div id="erfassung-main" style="display:none" class="erfassung-layout">
+        <div class="schueler-sidebar card" style="padding:12px">
+          <div class="section-title">Schüler:innen</div>
+          <div id="schueler-nav" class="schueler-nav"></div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-lt)">
+            <div class="progress-bar-wrap" style="max-width:100%;margin-bottom:5px"><div class="progress-bar-fill" id="pb1" style="width:0%"></div></div>
+            <div style="font-size:10px;color:var(--dim)" id="pb-label">0 / 0</div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="font-size:15px;font-weight:600" id="cur-name">–</div>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button class="btn btn-secondary btn-sm" id="btn-prev-top" onclick="prevS()">← Zurück</button>
+              <button class="btn btn-primary btn-sm" id="btn-next-top" onclick="nextS()">Weiter →</button>
+            </div>
+          </div>
+          <div id="ind-list" class="ind-bewertung-list"></div>
+          <div class="nav-bottom">
+            <button class="btn btn-secondary" id="btn-prev-bot" onclick="prevS()">← Zurück</button>
+            <div class="progress-bar-wrap"><div class="progress-bar-fill" id="pb2" style="width:0%"></div></div>
+            <button class="btn btn-primary" id="btn-next-bot" onclick="nextS()">Weiter →</button>
+          </div>
+        </div>
+      </div>
+      <!-- Modus: Nach Indikator -->
+      <div id="erfassung-ind-main" style="display:none">
+        <div class="card" style="padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            <div id="cur-ind-label" style="font-size:10px;color:var(--dim);margin-bottom:2px"></div>
+            <div id="cur-ind-text" style="font-size:14px;font-weight:600"></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-secondary btn-sm" id="btn-ind-prev" onclick="prevInd()">← Zurück</button>
+            <button class="btn btn-primary btn-sm" id="btn-ind-next" onclick="nextInd()">Weiter →</button>
+          </div>
+        </div>
+        <div id="ind-schueler-list" class="ind-bewertung-list"></div>
+        <div class="nav-bottom">
+          <button class="btn btn-secondary" id="btn-ind-prev-bot" onclick="prevInd()">← Zurück</button>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="pb-ind" style="width:0%"></div></div>
+          <button class="btn btn-primary" id="btn-ind-next-bot" onclick="nextInd()">Weiter →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard" style="display:none">
+    <div id="dashboard-noop" class="setup-required" style="display:none">
+      <div class="icon">📊</div>
+      <h2>Noch keine Daten</h2>
+      <p>Erfasse zuerst Beurteilungen in der Erfassungsansicht.</p>
+      <button class="btn btn-primary" onclick="showTab('setup')">Zum Setup</button>
+    </div>
+    <div id="dashboard-content">
+      <div class="card tab-header-card">
+        <label class="form-label" style="margin:0;white-space:nowrap;font-weight:600">Schüler:in</label>
+        <select id="db-schueler" class="form-input" style="flex:1;min-width:0;max-width:260px" onchange="renderDashboard()"></select>
+        <div id="db-meta" style="font-size:12px;color:var(--dim)"></div>
+      </div>
+      <!-- Kompetenz-Spalten -->
+      <div id="comp-columns" class="comp-columns-grid" style="margin-bottom:20px"></div>
+      <!-- Verlauf volle Breite -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">Verlauf pro Indikator</div></div>
+        <div class="card-body">
+          <div style="margin-bottom:12px">
+            <label class="form-label">Indikator</label>
+            <select id="verlauf-ind" class="form-input" onchange="renderVerlauf()"></select>
+          </div>
+          <div class="verlauf-container">
+            <canvas id="verlauf-canvas"></canvas>
+          </div>
+          <div id="verlauf-legend" style="display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--dim);flex-wrap:wrap"></div>
+        </div>
+      </div>
+      <!-- Beurteilungen alle Lektionen -->
+      <div class="card">
+        <div class="card-header"><div class="card-title" id="lektionen-all-title">Beurteilungen alle Lektionen</div></div>
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <div id="overview-table"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATEN -->
+  <div id="tab-daten" style="display:none">
+    <div id="daten-info" style="margin-bottom:16px"></div>
+    <div class="setup-grid">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Exportieren</div></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.6">Alle Daten als JSON-Datei herunterladen — als Sicherungskopie oder zum Übertragen auf ein anderes Gerät.</p>
+          <button class="btn btn-primary" onclick="exportJSON()">⬇ JSON herunterladen</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Importieren</div></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.6">Eine gespeicherte JSON-Datei laden. <strong>Achtung:</strong> bestehende Daten werden vollständig überschrieben.</p>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+          <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">⬆ JSON importieren</button>
+        </div>
+      </div>
+      <div class="card" style="border-color:#FFCDD2">
+        <div class="card-header" style="border-color:#FFCDD2"><div class="card-title" style="color:#C00000">Zurücksetzen</div></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.6">Alle Daten unwiderruflich löschen. Vorher exportieren empfohlen.</p>
+          <button class="btn btn-danger" onclick="resetAll()">Alles löschen</button>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--dim);line-height:1.6;margin-top:20px">Kompetenzfelder und Indikatoren nach: Ingold, S. &amp; Maurer, B. (Hrsg.) (2024). <em>Making und Schule. Praxishandbuch für Schulentwicklung und Unterricht.</em> München: kopaed, Kap. 3.2.1 und 5.6. <a href="https://creativecommons.org/licenses/by/4.0/deed.de" style="color:inherit">CC BY 4.0</a>, angepasst.<br>MakerEdu Tools · © Raphael Fisch · CC BY-NC-SA 4.0</p>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div id="add-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>Schüler:in hinzufügen</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div><label class="form-label">Vorname</label><input type="text" class="form-input" id="m-vorname" placeholder="Max"></div>
+      <div><label class="form-label">Nachname</label><input type="text" class="form-input" id="m-nachname" placeholder="Muster"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveManual()">Hinzufügen</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-modal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:380px">
+    <h3 id="confirm-title" style="margin-bottom:8px"></h3>
+    <p id="confirm-msg" style="font-size:13px;color:var(--dim);margin-bottom:20px;line-height:1.6"></p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Abbrechen</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<div id="bp-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeBpModal()">
+  <div class="modal" style="max-width:520px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+      <div>
+        <div id="bp-modal-comp" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px"></div>
+        <h3 id="bp-modal-title" style="margin-bottom:0"></h3>
+      </div>
+      <button onclick="closeBpModal()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--dim);line-height:1;padding:0 0 0 12px">×</button>
+    </div>
+    <div id="bp-modal-body" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────
+const RL = ['','–','=','+','++'];
+const RN = ['','nicht genügend','genügend','gut','sehr gut'];
+const RC = ['','#DC2626','#F59E0B','#10B981','#3B82F6'];
+
+// MakerEdu kompetenz-Struktur (zum Entschlüsseln der Generator-URL)
+const MDATA = {
+  personal:{id:'personal',label:'PERSONALE KOMPETENZEN',short:'PK',color:'#C00000',
+    subs:[
+      {id:'p1',label:'Eigenständigkeit',inds:["Du konntest etwas bauen, das dir wichtig ist.","Du hattest viele gute Ideen.","Du hast deine eigene(n) Idee(n) umgesetzt.","Du hast etwas gelernt, das dich interessiert.","Du bist stolz auf das, was du beim Making gelernt hast.","Du hast dein Produkt selbständig geplant und umgesetzt."]},
+      {id:'p2',label:'Offenheit / Risikobereitschaft',inds:["Du hast Werkzeuge, Materialien oder Maschinen ausprobiert, die du vorher noch nicht kanntest.","Du hast Ideen umgesetzt, von denen du nicht wusstest, ob sie funktionieren.","Du hast ein Projekt gewählt, das du vorher noch nie umgesetzt hast."]},
+      {id:'p3',label:'Selbstregulation / Selbstreflexion',inds:["Wenn etwas nicht funktioniert hat, wolltest du herausfinden, was der Grund dafür ist.","Du hast so lange getüftelt, bis das Problem gelöst war.","Du hast dich mit dem ersten Ergebnis nicht zufriedengegeben, sondern mehrere Prototypen gebaut und verbessert.","Du hast Fehler als Chance gesehen und etwas daraus gelernt.","Wenn es mal mühsam war, konntest du dich selbst zum Weitermachen motivieren.","Du hast die Zeit sinnvoll eingeteilt.","Du hast dein Ziel im Auge behalten und bis zum Schluss verfolgt.","Du konntest dich auf dein Projekt konzentrieren."]},
+      {id:'p4',label:'Flexibilität / Improvisation',inds:["Wenn etwas gefehlt hat (z.B. Material), hast du etwas anderes verwendet.","Du hast Dinge verwendet, die eigentlich für etwas anderes gedacht sind.","Obwohl du kaum Material hattest, konntest du trotzdem etwas daraus machen."]},
+      {id:'p5',label:'Überzeugungskraft',inds:["Du konntest andere Teammitglieder von deinen Ideen überzeugen."]},
+      {id:'p6',label:'Verantwortung / Haltung',inds:["Du bist Schwierigkeiten nicht aus dem Weg gegangen.","Du hast Hilfe gesucht und angenommen, wenn du nicht mehr weiterwusstest.","Du hast deine wichtigsten Erkenntnisse dokumentiert.","Du hast beim Making etwas Neues gelernt.","Du hast deinen Arbeitsplatz, die Werkzeuge und Maschinen aufgeräumt und sauber hinterlassen.","Du hast die Schutz- und Sicherheitsregeln beachtet (z.B. Schutzbrille beim Löten).","Du hast beim Making niemanden in Gefahr gebracht."]},
+    ]},
+  methodical:{id:'methodical',label:'METHODENKOMPETENZEN',short:'MK',color:'#70AD47',
+    subs:[
+      {id:'m1',label:'Problemanalyse / Problemverstehen',inds:["Du hast selbst versucht, das Problem zu verstehen.","Dir war klar, welches Problem zu lösen ist.","Bei Fehlern hast du herausgefunden, was das Problem war.","Du hast Tipps zu deinem Problem im Netz oder anderswo gefunden."]},
+      {id:'m2',label:'Kreative Denk- und Problemlösefähigkeiten',inds:["Du hattest sehr viele Ideen.","Du hast Methoden zur Ideenentwicklung eingesetzt (z.B. Brainstorming, morphologischer Kasten, …).","Bei der Fehlersuche bist du systematisch vorgegangen.","Du konntest selbständig Fehler beheben.","Du konntest Fehler mit Unterstützung anderer beheben.","Du hast Methoden eingesetzt, um Probleme von dir oder anderen zu lösen."]},
+      {id:'m3',label:'Produktentwicklung',inds:["Du hast Skizzen, Modelle und Prototypen angefertigt, bevor du das Endprodukt gebaut hast.","Du hast dich beim Entwickeln deines Produkts am Design Thinking Modell orientiert.","Du kannst deine Konstruktionsschritte und Gestaltungsentscheidungen begründen.","Du kannst dir für dein Projekt Inspirationen suchen (z.B. im Netz oder von Mitschüler*innen)."]},
+      {id:'m4',label:'Recherche- und Informationskompetenzen',inds:["Du hast im Internet brauchbare Anregungen für dein Produkt gefunden."]},
+    ]},
+  social:{id:'social',label:'SOZIALE KOMPETENZEN',short:'SK',color:'#FFC000',
+    subs:[
+      {id:'s1',label:'Zusammenarbeit',inds:["Du bist respektvoll mit deinen Teamkolleginnen und Teamkollegen umgegangen.","Du hast dazu beigetragen, dass Meinungsverschiedenheiten und Konflikte gelöst wurden.","Du hast dazu beigetragen, die Arbeit im Team zu planen.","Du konntest deine Stärken ins Team einbringen.","Du hast dazu beigetragen, dass die Arbeit in deinem Team produktiv war.","Du hast dich aktiv an der Zusammenarbeit im Team beteiligt."]},
+      {id:'s2',label:'Hilfs- und Unterstützungsbereitschaft',inds:["Du hast anderen bei ihren Projekten weitergeholfen.","Du konntest anderen etwas beibringen (z.B. wie ein Werkzeug funktioniert oder wie man am Computer etwas konstruiert).","Du hast dazu beigetragen, dass Ideen deiner Klassenkamerad*innen umgesetzt werden konnten."]},
+      {id:'s3',label:'Feedback / Unterstützung (einfordern)',inds:["Wenn du nicht weiterwusstest, hast du andere um Unterstützung gebeten.","Du konntest das Feedback deiner Klassenkameradinnen und Kameraden für dein Projekt nutzen.","Du konntest dich in die Produkte deiner Klassenkameradinnen und Kameraden hineindenken und Verbesserungsvorschläge machen."]},
+      {id:'s4',label:'Wertschätzung',inds:["Du hast Teammitglieder für eine gute Idee gelobt.","Du hast die Stärken deiner Teammitglieder erkannt und gewürdigt."]},
+    ]},
+  technical:{id:'technical',label:'FACHKOMPETENZEN',short:'FK',color:'#5B9BD5',
+    subs:[
+      {id:'f1',label:'Anwendung von Werkzeugen und Maschinen / Handwerk',inds:["Du hast digitale Fabrikationsverfahren kennengelernt.","Du hast digitale Fabrikationsverfahren für die Herstellung deines Produkts verwendet.","Du weisst, wofür du einen 3D-Drucker / einen Laser Cutter / einen Plotter / eine CNC-Fräse sinnvoll einsetzen kannst."]},
+      {id:'f2',label:'Technik',inds:["Du hast neue technische Verfahren kennengelernt.","Du konntest deine Kenntnisse über Naturwissenschaft und Technik anwenden."]},
+      {id:'f3',label:'Informatische Kompetenzen',inds:["Du konntest Microcontroller, Sensoren und Aktoren zielführend in dein Produkt einbauen.","Du hast Programme geschrieben, in welchen Daten von Sensoren zur Steuerung von Aktoren richtig verwendet werden.","Du konntest Schleifen, Wenn-Dann-Bedingungen, Variablen und andere Programmierbausteine zu lauffähigen Programmen zusammensetzen."]},
+      {id:'f4',label:'Gestaltung und Design',inds:[]},
+      {id:'f5',label:'Medienkompetenzen',inds:["Du hast Medien zur Dokumentation deiner Arbeit sinnvoll eingesetzt."]},
+    ]},
+};
+
+// ─── STATE ───────────────────────────────────────────
+let S = { projektName:'', klasse:'', lektionLabel:'', indikatoren:[], schueler:[], lektionen:[], bewertungen:{} };
+let curLek = null, curSIdx = 0, curIndIdx = 0, erfassungMode = 'schueler';
+let _activeProjectId = null;
+
+let _dirty = false;
+function markDirty(){ _dirty=true; }
+
+// ─── MULTI-PROJECT STORAGE ───────────────────────────
+function getProjectIndex(){ try{ return JSON.parse(localStorage.getItem('mke-projects')||'[]'); }catch(e){ return []; } }
+function saveProjectIndex(idx){ try{ localStorage.setItem('mke-projects', JSON.stringify(idx)); }catch(e){} }
+
+function save(){
+  if(!_activeProjectId) _activeProjectId='proj_'+Date.now();
+  try{
+    localStorage.setItem('mke-project-'+_activeProjectId, JSON.stringify(S));
+    let idx=getProjectIndex();
+    const existing=idx.findIndex(p=>p.id===_activeProjectId);
+    const entry={ id:_activeProjectId, name:S.projektName||'Unbenanntes Projekt', klasse:S.klasse||'' };
+    if(existing>=0) idx[existing]=entry; else idx.push(entry);
+    saveProjectIndex(idx);
+    _dirty=false;
+  }catch(e){}
+}
+
+function load(id){
+  try{
+    const idx=getProjectIndex();
+    // Migration: legacy mke-tracker
+    if(!id && idx.length===0){
+      const legacy=localStorage.getItem('mke-tracker');
+      if(legacy){ S=JSON.parse(legacy); S.schueler.sort((a,b)=>a.vorname.localeCompare(b.vorname)||a.nachname.localeCompare(b.nachname)); _activeProjectId='proj_'+Date.now(); save(); localStorage.removeItem('mke-tracker'); return; }
+    }
+    const targetId=id||(idx.length>0?idx[0].id:null);
+    if(targetId){
+      const d=localStorage.getItem('mke-project-'+targetId);
+      if(d){ S=JSON.parse(d); S.schueler.sort((a,b)=>a.vorname.localeCompare(b.vorname)||a.nachname.localeCompare(b.nachname)); _activeProjectId=targetId; }
+    }
+    if(!_activeProjectId){ _activeProjectId='proj_'+Date.now(); save(); }
+  }catch(e){}
+}
+
+function switchProject(id){
+  if(id===_activeProjectId){ closeProjectDropdown(); return; }
+  if(_dirty){ showConfirm('Ungespeicherte Änderungen','Möchtest du vor dem Wechsel speichern?','Speichern & wechseln',()=>{ save(); doSwitchProject(id); }); }
+  else doSwitchProject(id);
+}
+
+function doSwitchProject(id){
+  S={ projektName:'', klasse:'', lektionLabel:'', indikatoren:[], schueler:[], lektionen:[], bewertungen:{} };
+  curLek=null; curSIdx=0; curIndIdx=0; load(id); refreshUI(); closeProjectDropdown();
+  showToast('Projekt gewechselt','success');
+}
+
+function newProject(){
+  if(_dirty) save();
+  S={ projektName:'', klasse:'', lektionLabel:'', indikatoren:[], schueler:[], lektionen:[], bewertungen:{} };
+  _activeProjectId='proj_'+Date.now(); curLek=null; curSIdx=0; curIndIdx=0;
+  save(); refreshUI(); closeProjectDropdown(); showTab('setup');
+  showToast('Neues Projekt erstellt','success');
+  setTimeout(()=>document.getElementById('projekt-name').focus(),100);
+}
+
+function deleteProject(id, name){
+  closeProjectDropdown();
+  showConfirm('Projekt löschen', `«${name}» wirklich löschen? Alle Daten dieses Projekts gehen verloren.`, 'Löschen', ()=>{
+    localStorage.removeItem('mke-project-'+id);
+    let idx=getProjectIndex().filter(p=>p.id!==id);
+    saveProjectIndex(idx);
+    if(_activeProjectId===id){
+      S={ projektName:'', klasse:'', lektionLabel:'', indikatoren:[], schueler:[], lektionen:[], bewertungen:{} };
+      _activeProjectId=null; curLek=null; curSIdx=0; curIndIdx=0;
+      if(idx.length>0) load(idx[0].id);
+      else { _activeProjectId='proj_'+Date.now(); save(); }
+      refreshUI(); showTab('setup');
+    }
+    showToast('Projekt gelöscht','success');
+  });
+}
+
+function refreshUI(){
+  document.getElementById('projekt-name').value=S.projektName||'';
+  document.getElementById('klasse-input').value=S.klasse||'';
+  updateLektionLabels();
+  updateProjektBadge();
+  document.getElementById('generator-url').value='';
+  document.getElementById('url-status').textContent='Füge den Link aus dem MakerEdu-Generator ein.';
+  if(S.indikatoren.length) document.getElementById('url-status').innerHTML=`<span class="status-chip status-ok">✓ ${S.indikatoren.length} Indikatoren geladen</span>`;
+  renderSchuelerList(); renderLektionenList(); renderIndPreview();
+  updateSetupCols(); renderSetupProgress(); renderDatenInfo(); updateTabLabels();
+}
+
+// ─── PROJECT DROPDOWN ────────────────────────────────
+function toggleProjectDropdown(e){
+  e.stopPropagation();
+  const dd=document.getElementById('project-dropdown');
+  if(dd.style.display==='none'||!dd.style.display){ renderProjectDropdown(); dd.style.display='block'; }
+  else closeProjectDropdown();
+}
+function closeProjectDropdown(){ const dd=document.getElementById('project-dropdown'); if(dd) dd.style.display='none'; }
+document.addEventListener('click', e=>{
+  const dd=document.getElementById('project-dropdown');
+  if(!dd || dd.style.display==='none') return;
+  if(dd.contains(e.target) || e.target.closest('#projekt-badge-btn')) return;
+  closeProjectDropdown();
+});
+
+function renderProjectDropdown(){
+  const idx=getProjectIndex();
+  const dd=document.getElementById('project-dropdown');
+  dd.innerHTML=idx.map(p=>{
+    const label=[p.name||'Unbenanntes Projekt', p.klasse].filter(Boolean).join(' · ');
+    return `<div class="proj-item-wrap" style="display:flex;align-items:center;border-bottom:1px solid var(--border-lt)">
+      <div class="proj-item${p.id===_activeProjectId?' active':''}" style="flex:1;border-bottom:none" data-switch="${p.id}">${label}</div>
+      <button class="proj-delete" data-delete="${p.id}" data-name="${(p.name||'Unbenanntes Projekt').replace(/"/g,'&quot;')}" title="Löschen">✕</button>
+    </div>`;}).join('')+
+  `<div class="proj-new" data-new="1">+ Neues Projekt</div>`;
+  // Single event listener on dropdown
+  dd.onclick=e=>{
+    const sw=e.target.closest('[data-switch]');
+    const del=e.target.closest('[data-delete]');
+    const nw=e.target.closest('[data-new]');
+    if(del){ deleteProject(del.dataset.delete, del.dataset.name); return; }
+    if(sw){ switchProject(sw.dataset.switch); return; }
+    if(nw){ newProject(); return; }
+  };
+}
+
+window.addEventListener('beforeunload', e=>{ if(_dirty){ e.preventDefault(); e.returnValue=''; } });
+
+// ─── TABS ─────────────────────────────────────────────
+function renderSetupProgress(){
+  const wrap=document.getElementById('setup-progress-wrap');
+  if(!wrap) return;
+  const hasProjekt=S.projektName.trim().length>0;
+  const hasInds=S.indikatoren.length>0;
+  const hasSchueler=S.schueler.length>0;
+  const hasLektionen=S.lektionen.length>0;
+  const steps=[
+    {label:'Projektname', done:hasProjekt},
+    {label:'Indikatoren', done:hasInds},
+    {label:'Schüler:innen', done:hasSchueler},
+    {label:'Lektionen', done:hasLektionen},
+  ];
+  const doneCount=steps.filter(s=>s.done).length;
+  const missing=steps.filter(s=>!s.done).map(s=>s.label).join(', ');
+  const greenBanner=`<div style="background:#EDFCF2;border:0.5px solid #0F9D58;border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:44px;margin-top:12px">
+    <div style="width:7px;height:7px;border-radius:50%;background:#0F9D58;flex-shrink:0"></div>
+    <span style="font-size:13px;color:#0a5c38;flex:1">Alles bereit — wechsle zur Erfassung und starte mit ${lbl()} 1.</span>
+    <button class="btn btn-secondary btn-sm" onclick="showTab('erfassung')">Zur Erfassung →</button>
+  </div>`;
+  const yellowBanner=`<div style="background:#FFF8E1;border:0.5px solid #FFC000;border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:44px;margin-top:12px">
+    <div style="width:7px;height:7px;border-radius:50%;background:#FFC000;flex-shrink:0"></div>
+    <span style="font-size:13px;color:#7a5c00;flex:1">Noch ausstehend: ${missing}</span>
+    <button class="btn btn-primary btn-sm" style="visibility:hidden">Platzhalter</button>
+  </div>`;
+  wrap.innerHTML=`<div class="card" style="padding:14px 18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:13px;font-weight:500">Projekt einrichten</span>
+      <span style="font-size:12px;color:var(--dim)">${doneCount} von 4 Schritten</span>
+    </div>
+    <div style="display:flex;gap:6px">
+      ${steps.map(s=>`<div style="flex:1;height:5px;border-radius:3px;background:${s.done?'#0F9D58':'var(--border)'}"></div>`).join('')}
+    </div>
+    <div style="display:flex;gap:6px;margin-top:5px">
+      ${steps.map(s=>`<div style="flex:1;font-size:10px;color:${s.done?'#0F9D58':'var(--dim)'}">${s.done?'✓':''} ${s.label}</div>`).join('')}
+    </div>
+  </div>
+  ${doneCount===4 ? greenBanner : yellowBanner}`;
+}
+
+function updateSetupCols(){
+  const grid=document.querySelector('.setup-grid');
+  if(!grid) return;
+  const w=grid.parentElement?.clientWidth||window.innerWidth;
+  grid.style.setProperty('--setup-cols', w>=3*280 ? 3 : 1);
+}
+
+function updateTabLabels(){
+  const tabs=document.querySelectorAll('.tab-btn');
+  const lekNum=S.lektionen.findIndex(l=>l.id===curLek);
+  const lekLabel=lekNum>=0 ? ` · ${lbl().charAt(0).toUpperCase()}${lekNum+1}` : '';
+  if(tabs[1]) tabs[1].textContent='📝 Erfassung'+lekLabel;
+}
+function showTab(name){
+  ['setup','erfassung','dashboard','daten'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===name?'':'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['setup','erfassung','dashboard','daten'][i]===name);
+  });
+  sessionStorage.setItem('mke-tab', name);
+  if(name==='setup'){ updateSetupCols(); renderSetupProgress(); }
+  if(name==='erfassung') renderErfassung();
+  if(name==='dashboard') renderDashboardFull();
+  if(name==='daten') renderDatenInfo();
+  updateTabLabels();
+}
+
+// ─── GENERATOR URL ────────────────────────────────────
+function loadFromGeneratorUrl(){
+  const url = document.getElementById('generator-url').value.trim();
+  let cParam;
+  try{ const u=new URL(url); cParam=u.searchParams.get('c'); }catch(e){ showToast('Ungültige URL','error'); return; }
+  if(!cParam){ showToast('Kein Konfigurations-Parameter','error'); return; }
+  let gs;
+  try{ try{ gs=JSON.parse(cParam); }catch(e1){ try{ gs=JSON.parse(decodeURIComponent(cParam)); }catch(e2){ gs=JSON.parse(decodeURIComponent(escape(atob(cParam)))); } } }
+  catch(e){ showToast('URL konnte nicht gelesen werden','error'); return; }
+  const inds = extractInds(gs);
+  if(!inds.length){ showToast('Keine Indikatoren gefunden','error'); return; }
+  const totalRatings=Object.values(S.bewertungen).reduce((sum,lb)=>sum+Object.values(lb).reduce((s,sr)=>s+Object.keys(sr).length,0),0);
+  const hasExisting = S.indikatoren.length > 0;
+  const doLoad = ()=>{
+    S.indikatoren = inds;
+    if(gs.t && !S.projektName){ S.projektName=gs.t; document.getElementById('projekt-name').value=gs.t; updateProjektBadge(); }
+    markDirty(); save();
+    renderIndPreview();
+    renderSetupProgress();
+    document.getElementById('url-status').innerHTML = `<span class="status-chip status-ok">✓ ${inds.length} Indikatoren geladen</span>`;
+    showToast(inds.length+' Indikatoren geladen','success');
+  };
+  if(hasExisting){
+    const ratingsTxt = totalRatings > 0 ? ` Es sind bereits ${totalRatings} Beurteilung${totalRatings!==1?'en':''} erfasst, die nicht mehr korrekt zugeordnet werden können.` : '';
+    showConfirm(
+      'Indikatoren ersetzen',
+      `Es sind bereits Indikatoren geladen.${ratingsTxt} Trotzdem fortfahren?`,
+      'Ersetzen',
+      doLoad
+    );
+  } else {
+    doLoad();
+  }
+}
+
+function extractInds(gs){
+  const result=[], sel=gs.sel||{}, ct=gs.ct||{}, ca=gs.ca||{};
+  Object.values(MDATA).forEach(comp=>{
+    comp.subs.forEach(sub=>{
+      const selected=sel[sub.id]||[];
+      if(!selected.length) return;
+      const allInds=[...sub.inds, ...(ca[sub.id]||[])];
+      selected.forEach(idx=>{
+        const text=ct[sub.id+'-'+idx]||allInds[idx]||'(unbekannt)';
+        result.push({ id:sub.id+'-'+idx, text, subLabel:sub.label, compLabel:comp.label, compShort:comp.short, compColor:comp.color, compId:comp.id });
+      });
+    });
+  });
+  return result;
+}
+
+function renderIndPreview(){
+  const c=document.getElementById('ind-preview');
+  if(!S.indikatoren.length){ c.innerHTML=''; return; }
+  const byComp={};
+  S.indikatoren.forEach(ind=>{ if(!byComp[ind.compId]) byComp[ind.compId]={label:ind.compLabel,color:ind.compColor,short:ind.compShort,items:[]}; byComp[ind.compId].items.push(ind); });
+  let h='<div class="section-title" style="margin-top:14px">Geladene Indikatoren</div>';
+  Object.values(byComp).forEach(g=>{
+    h+=`<div class="comp-group"><div class="comp-group-header" style="background:${g.color}15"><div class="comp-dot" style="background:${g.color}"></div><span class="comp-group-label" style="color:${g.color}">${g.label}</span><span class="comp-count-badge" style="background:${g.color}20;color:${g.color}">${g.items.length}</span></div><div class="ind-list">`;
+    g.items.forEach(ind=>{ h+=`<div class="ind-chip">${ind.text}</div>`; });
+    h+=`</div></div>`;
+  });
+  c.innerHTML=h;
+}
+
+// ─── SCHÜLER ──────────────────────────────────────────
+function importSchueler(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+      let imp=0,skip=0;
+      for(let i=1;i<rows.length;i++){
+        const row=rows[i];
+        const vn=row[0]?String(row[0]).trim():'', nn=row[1]?String(row[1]).trim():'';
+        if(!nn||!vn){skip++;continue;}
+        if(!S.schueler.find(s=>s.vorname.toLowerCase()===vn.toLowerCase()&&s.nachname.toLowerCase()===nn.toLowerCase())){
+          S.schueler.push({id:'sch_'+Date.now()+'_'+i,vorname:vn,nachname:nn}); imp++;
+        } else skip++;
+      }
+      S.schueler.sort((a,b)=>a.vorname.localeCompare(b.vorname)||a.nachname.localeCompare(b.nachname));
+      save(); renderSchuelerList(); renderLektionenList(); renderSetupProgress();
+      showToast(imp+' importiert'+(skip?' ('+skip+' übersprungen)':''),'success');
+    }catch(e){ showToast('Fehler beim Importieren','error'); }
+  };
+  r.readAsArrayBuffer(file); ev.target.value='';
+}
+
+function addSchuelerManual(){ document.getElementById('m-nachname').value=''; document.getElementById('m-vorname').value=''; document.getElementById('add-modal').style.display='flex'; setTimeout(()=>document.getElementById('m-vorname').focus(),50); }
+function closeModal(){ document.getElementById('add-modal').style.display='none'; }
+function showConfirm(title, msg, btnLabel, onOk){
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-msg').textContent=msg;
+  const btn=document.getElementById('confirm-ok-btn');
+  btn.textContent=btnLabel;
+  btn.onclick=()=>{ closeConfirm(); onOk(); };
+  document.getElementById('confirm-modal').style.display='flex';
+}
+function closeConfirm(){ document.getElementById('confirm-modal').style.display='none'; }
+function closeBpModal(){ document.getElementById('bp-modal').style.display='none'; }
+function showBpModal(sId, indId){
+  const ind = S.indikatoren.find(i=>i.id===indId);
+  if(!ind) return;
+  document.getElementById('bp-modal-comp').style.color = ind.compColor;
+  document.getElementById('bp-modal-comp').textContent = ind.compShort + ' – ' + ind.subLabel;
+  document.getElementById('bp-modal-title').textContent = ind.text;
+  const rows = S.lektionen.map(l=>{
+    const r = ((S.bewertungen[l.id]||{})[sId]||{})[indId];
+    const hasVal = r !== undefined && r !== null;
+    const isSkip = r === 0;
+    const col = hasVal && !isSkip ? ['','#C00000','#FB8C00','#10B981','#3B82F6'][r] : '#9E9E9E';
+    const sym = hasVal ? (isSkip ? '→' : ['','–','=','+','++'][r]) : '–';
+    const label = hasVal && !isSkip ? ['','Nicht genügend','Genügend','Gut','Sehr gut'][r] : (isSkip ? 'Übersprungen' : 'Nicht erfasst');
+    return `<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--border-lt)">
+      <div style="font-size:12px;color:var(--dim);width:80px;flex-shrink:0">${l.name}</div>
+      <div class="rating-dot" style="background:${col};flex-shrink:0">${sym}</div>
+      <div style="font-size:12px;color:${hasVal&&!isSkip?col:'var(--dim)'};font-weight:${hasVal&&!isSkip?'600':'400'}">${label}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('bp-modal-body').innerHTML = rows ||
+    '<div style="font-size:13px;color:var(--dim);padding:12px 0">Noch keine Beurteilungen.</div>';
+  document.getElementById('bp-modal').style.display='flex';
+}
+function saveManual(){
+  const nn=document.getElementById('m-nachname').value.trim(), vn=document.getElementById('m-vorname').value.trim();
+  if(!nn||!vn){ showToast('Bitte beide Felder ausfüllen','error'); return; }
+  S.schueler.push({id:'sch_'+Date.now(),vorname:vn,nachname:nn});
+  S.schueler.sort((a,b)=>a.vorname.localeCompare(b.vorname)||a.nachname.localeCompare(b.nachname));
+  save(); renderSchuelerList(); renderSetupProgress(); closeModal(); renderLektionenList(); showToast('Schüler:in hinzugefügt','success');
+}
+function removeSchueler(id){
+  const s=S.schueler.find(s=>s.id===id);
+  showConfirm('Schüler:in löschen', `${s?.vorname} ${s?.nachname} wirklich löschen? Alle Beurteilungen dieser Person gehen verloren.`, 'Löschen', ()=>{
+    S.schueler=S.schueler.filter(s=>s.id!==id);
+    Object.values(S.bewertungen).forEach(lb=>delete lb[id]);
+    save(); renderSchuelerList(); renderLektionenList(); renderSetupProgress();
+  });
+}
+function renderSchuelerList(){
+  const c=document.getElementById('schueler-list');
+  if(!S.schueler.length){ c.innerHTML=`<div class="empty-state" style="padding:24px 10px"><div class="em">👥</div><p>Noch keine Schüler:innen</p></div>`; return; }
+  c.innerHTML=S.schueler.map(s=>`<div class="schueler-item"><div class="schueler-avatar">${(s.vorname[0]+s.nachname[0]).toUpperCase()}</div><div class="schueler-name">${s.vorname} ${s.nachname}</div><button class="remove-btn" onclick="removeSchueler('${s.id}')">✕</button></div>`).join('');
+}
+
+// ─── LEKTIONEN ────────────────────────────────────────
+function addLektion(){
+  const num=S.lektionen.length+1;
+  const l={id:'lek_'+Date.now(),name:lbl()+' '+num,datum:new Date().toLocaleDateString('de-CH')};
+  S.lektionen.push(l); S.bewertungen[l.id]={}; markDirty(); save(); renderLektionenList(); renderSetupProgress();
+  showToast(lbl()+' '+num+' erstellt','success');
+}
+function removeLektion(id){
+  const l=S.lektionen.find(l=>l.id===id);
+  showConfirm(lbl()+' löschen', `«${l?.name}» wirklich löschen? Alle Beurteilungen dieser ${lbl()} gehen verloren.`, 'Löschen', ()=>{
+    S.lektionen=S.lektionen.filter(l=>l.id!==id); delete S.bewertungen[id]; markDirty(); save(); renderLektionenList(); renderSetupProgress();
+  });
+}
+function updLekName(id,v){ const l=S.lektionen.find(l=>l.id===id); if(l){l.name=v;save();} }
+function renderLektionenList(){
+  const c=document.getElementById('lektionen-list');
+  if(!S.lektionen.length){ c.innerHTML=`<div style="text-align:center;padding:16px 0"><button class="btn btn-primary" onclick="addLektion()">+ Neue ${lbl()}</button></div>`; return; }
+  c.innerHTML=S.lektionen.map((l,i)=>{
+    const lb=S.bewertungen[l.id]||{};
+    const total=S.schueler.length*S.indikatoren.length;
+    const done=Object.values(lb).reduce((s,sr)=>s+Object.keys(sr).length,0);
+    const pct=total>0?Math.round(done/total*100):0;
+    return `<div class="lektion-item"><div class="lektion-num">${i+1}</div><div style="flex:1"><input type="text" value="${l.name}" class="form-input" style="max-width:200px;padding:5px 9px;font-size:13px" onchange="updLekName('${l.id}',this.value)"><div style="font-size:11px;color:var(--dim);margin-top:4px">${l.datum} · ${pct}% erfasst</div></div><div style="display:flex;gap:6px;align-items:center"><button class="btn btn-primary btn-sm" onclick="goErfassung('${l.id}')">Beurteilen</button><button class="remove-btn" onclick="removeLektion('${l.id}')">✕</button></div></div>`;
+  }).join('') + `<div style="margin-top:16px;text-align:center"><button class="btn btn-primary" onclick="addLektion()">+ Neue ${lbl()}</button></div>`;
+}
+function goErfassung(id){ curLek=id; showTab('erfassung'); onLektionChange(id); }
+function lbl(){ return S.lektionLabel||'Lektion'; }
+function onLblInput(){ S.lektionLabel=document.getElementById('lektionen-card-title').value; markDirty(); save(); updateLektionLabels(); }
+function saveMeta(){ S.projektName=document.getElementById('projekt-name').value; S.klasse=document.getElementById('klasse-input').value; markDirty(); save(); updateProjektBadge(); renderSetupProgress(); }
+function updateLektionLabels(){
+  const l=lbl();
+  const h=document.getElementById('lektionen-card-title'); if(h) h.value=l;
+  const b=document.getElementById('lektionen-all-title'); if(b) b.textContent='Beurteilungen alle '+l;
+  const w=document.getElementById('lektion-waehlen-label'); if(w) w.textContent=l+' wählen:';
+  renderLektionenList();
+}
+function updateProjektBadge(){
+  const b=document.getElementById('projekt-badge-btn');
+  if(!b) return;
+  const name=S.projektName||'';
+  const klasse=S.klasse||'';
+  const parts=[name,klasse].filter(Boolean);
+  if(parts.length){
+    b.textContent=parts.join(' · ');
+    b.style.background='rgba(255,255,255,0.15)';
+    b.style.color='white';
+    b.style.border='none';
+  } else {
+    b.textContent='Kein Projekt';
+    b.style.background='transparent';
+    b.style.color='rgba(255,255,255,0.5)';
+    b.style.border='1px dashed rgba(255,255,255,0.35)';
+  }
+}
+
+// ─── ERFASSUNG ────────────────────────────────────────
+function renderErfassung(){
+  const ok=S.indikatoren.length>0&&S.schueler.length>0&&S.lektionen.length>0;
+  document.getElementById('erfassung-noop').style.display=ok?'none':'flex';
+  document.getElementById('erfassung-content').style.display=ok?'':'none';
+  if(!ok) return;
+  renderLektionenProgressBar();
+  onLektionChange();
+}
+
+function renderLektionenProgressBar(){
+  const bar=document.getElementById('lektionen-progress-bar');
+  if(!bar) return;
+  const total=S.schueler.length*S.indikatoren.length;
+  bar.innerHTML=`<div style="display:flex;gap:5px;margin-bottom:5px">`+
+    S.lektionen.map(l=>{
+      const lb=S.bewertungen[l.id]||{};
+      const done=S.schueler.reduce((s,sc)=>s+Object.keys(lb[sc.id]||{}).length,0);
+      const pct=total>0?Math.round(done/total*100):0;
+      const active=l.id===curLek;
+      const col=pct===100?'#0F9D58':pct>0?'#FFC000':'var(--border)';
+      return `<div style="flex:1;cursor:pointer" onclick="onLektionChange('${l.id}')">
+        <div style="height:5px;border-radius:3px;background:${col};${active?'outline:2px solid #1A73E8;outline-offset:2px':''}"></div>
+        <div style="font-size:9px;color:${active?'#1A73E8':'var(--dim)'};margin-top:3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:${active?'700':'400'}">${l.name}</div>
+      </div>`;
+    }).join('')+`</div>`;
+}
+function onLektionChange(id){
+  if(id) curLek=id;
+  if(!curLek) return;
+  if(!S.bewertungen[curLek]) S.bewertungen[curLek]={};
+  curSIdx=0; curIndIdx=0;
+  setErfassungMode(erfassungMode);
+  renderSNav(); renderCurS(); updProgress(); updateTabLabels();
+}
+function renderSNav(){
+  const nav=document.getElementById('schueler-nav');
+  const lb=S.bewertungen[curLek]||{};
+  nav.innerHTML=S.schueler.map((s,i)=>{
+    const done=Object.keys(lb[s.id]||{}).length>=S.indikatoren.length;
+    const active=i===curSIdx;
+    return `<div class="schueler-nav-item${active?' active':''}${done?' done':''}" onclick="selS(${i})">
+      <div class="s-nav-avatar">${(s.vorname[0]+s.nachname[0]).toUpperCase()}</div>
+      <div><div class="s-nav-name">${s.vorname} ${s.nachname}</div><div class="s-nav-meta">${Object.keys(lb[s.id]||{}).length}/${S.indikatoren.length}</div></div>
+    </div>`;
+  }).join('');
+}
+function selS(i){ curSIdx=i; renderSNav(); renderCurS(); updProgress(); }
+function setErfassungMode(mode){
+  erfassungMode=mode;
+  const bs=document.getElementById('mode-btn-schueler');
+  const bi=document.getElementById('mode-btn-indikator');
+  if(bs&&bi){
+    bs.style.background=mode==='schueler'?'#2D2D2D':'none';
+    bs.style.color=mode==='schueler'?'white':'var(--muted)';
+    bi.style.background=mode==='indikator'?'#2D2D2D':'none';
+    bi.style.color=mode==='indikator'?'white':'var(--muted)';
+  }
+  document.getElementById('erfassung-main').style.display=curLek&&mode==='schueler'?'grid':'none';
+  document.getElementById('erfassung-ind-main').style.display=curLek&&mode==='indikator'?'block':'none';
+  if(curLek&&mode==='indikator') renderIndModus();
+}
+
+function prevInd(){ if(curIndIdx>0){ curIndIdx--; renderIndModus(); } }
+function nextInd(){ if(curIndIdx<S.indikatoren.length-1){ curIndIdx++; renderIndModus(); } }
+
+function renderIndModus(){
+  const ind=S.indikatoren[curIndIdx];
+  if(!ind) return;
+  document.getElementById('cur-ind-label').textContent=ind.compShort+' – '+ind.subLabel;
+  document.getElementById('cur-ind-text').textContent=ind.text;
+  // Prev/Next visibility
+  ['btn-ind-prev','btn-ind-prev-bot'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility=curIndIdx>0?'visible':'hidden'; });
+  ['btn-ind-next','btn-ind-next-bot'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility=curIndIdx<S.indikatoren.length-1?'visible':'hidden'; });
+  // Progress
+  const pb=document.getElementById('pb-ind');
+  if(pb) pb.style.width=Math.round((curIndIdx+1)/S.indikatoren.length*100)+'%';
+  // Schüler:innen liste
+  const lb=S.bewertungen[curLek]||{};
+  const list=document.getElementById('ind-schueler-list');
+  list.innerHTML=S.schueler.map(s=>{
+    const cur=(lb[s.id]||{})[ind.id];
+    return `<div class="ind-bewertung-row">
+      <div class="ind-bewertung-left" style="align-items:center">
+        <div class="student-avatar" style="width:28px;height:28px;border-radius:50%;background:#888;display:grid;place-items:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">${(s.vorname[0]+s.nachname[0]).toUpperCase()}</div>
+        <div class="ind-text" style="font-size:13px;font-weight:500">${s.vorname} ${s.nachname}</div>
+      </div>
+      <div class="rating-row">
+        ${[1,2,3,4].map(r=>`<button class="rating-btn${cur===r?' selected sel-'+r:' r'+r}" onclick="setRatingInd('${s.id}','${ind.id}',${r})" title="${RN[r]}">${RL[r]}</button>`).join('')}
+        <button class="rating-btn skip-btn${cur===0?' selected':''}" onclick="setRatingInd('${s.id}','${ind.id}',0)" title="Überspringen">→</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setRatingInd(sId,indId,r){
+  if(!S.bewertungen[curLek]) S.bewertungen[curLek]={};
+  if(!S.bewertungen[curLek][sId]) S.bewertungen[curLek][sId]={};
+  const cur=S.bewertungen[curLek][sId][indId];
+  if(cur===r) delete S.bewertungen[curLek][sId][indId];
+  else S.bewertungen[curLek][sId][indId]=r;
+  markDirty(); save(); updProgress(); renderIndModus();
+}
+function nextS(){ if(curSIdx<S.schueler.length-1) selS(curSIdx+1); }
+function renderCurS(){
+  const s=S.schueler[curSIdx]; if(!s) return;
+  document.getElementById('cur-name').textContent=s.vorname+' '+s.nachname;
+  const hasPrev=curSIdx>0, hasNext=curSIdx<S.schueler.length-1;
+  ['btn-prev-top','btn-prev-bot'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility=hasPrev?'visible':'hidden'; });
+  ['btn-next-top','btn-next-bot'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility=hasNext?'visible':'hidden'; });
+  const sr=(S.bewertungen[curLek]||{})[s.id]||{};
+  document.getElementById('ind-list').innerHTML=S.indikatoren.map(ind=>{
+    const cur=sr[ind.id]!==undefined?sr[ind.id]:null;
+    return `<div class="ind-bewertung-row" id="row-${ind.id}">
+      <div class="ind-bewertung-left">
+        <div class="ind-domain-dot" style="background:${ind.compColor}"></div>
+        <div><div class="ind-sub-label">${ind.compShort} – ${ind.subLabel}</div><div class="ind-text">${ind.text}</div></div>
+      </div>
+      <div class="rating-row">
+        ${[1,2,3,4].map(r=>`<button class="rating-btn${cur===r?' selected sel-'+r:' r'+r}" onclick="setRating('${s.id}','${ind.id}',${r})" title="${RN[r]}">${RL[r]}</button>`).join('')}
+        <button class="rating-btn skip-btn${cur===0?' selected':''}" onclick="setRating('${s.id}','${ind.id}',0)" title="Überspringen">→</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function setRating(sId,indId,r){
+  if(!S.bewertungen[curLek]) S.bewertungen[curLek]={};
+  if(!S.bewertungen[curLek][sId]) S.bewertungen[curLek][sId]={};
+  // Toggle off if same value clicked again
+  const cur=S.bewertungen[curLek][sId][indId];
+  if(cur===r) delete S.bewertungen[curLek][sId][indId];
+  else S.bewertungen[curLek][sId][indId]=r;
+  save(); renderSNav(); updProgress();
+  // Update just this row
+  const s=S.schueler[curSIdx]; if(!s||s.id!==sId) return;
+  const newVal=S.bewertungen[curLek]?.[sId]?.[indId];
+  const btns=document.querySelectorAll(`#row-${CSS.escape(indId)} .rating-btn`);
+  btns.forEach((btn,i)=>{
+    const rv=i<4?i+1:0;
+    btn.className='rating-btn'+(i===4?' skip-btn':'');
+    if(!btn.classList.contains('skip-btn')) btn.classList.add('r'+(i+1));
+    if(rv===newVal){ btn.classList.add('selected'); if(newVal>0) btn.classList.add('sel-'+newVal); }
+  });
+}
+function updProgress(){
+  const lb=S.bewertungen[curLek]||{};
+  const total=S.schueler.length, done=S.schueler.filter(s=>Object.keys(lb[s.id]||{}).length>=S.indikatoren.length).length;
+  const pct=total>0?Math.round(done/total*100):0;
+  ['pb1','pb2'].forEach(id=>document.getElementById(id).style.width=pct+'%');
+  renderLektionenList();
+  document.getElementById('pb-label').textContent=done+' / '+total+' Schüler:innen';
+  // Kontext-Banner
+  const banner=document.getElementById('erfassung-banner');
+  banner.style.display='block';
+  if(pct===100){
+    banner.innerHTML=`<div style="background:#EDFCF2;border:0.5px solid #0F9D58;border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:44px;margin-top:12px">
+      <div style="width:7px;height:7px;border-radius:50%;background:#0F9D58;flex-shrink:0"></div>
+      <span style="font-size:13px;color:#0a5c38;flex:1">${lbl()} vollständig beurteilt — alle ${total} Schüler:innen erfasst.</span>
+      <button class="btn btn-secondary btn-sm" onclick="showTab('dashboard')">Zur Auswertung →</button>
+    </div>`;
+  } else if(pct===0){
+    banner.innerHTML=`<div style="background:#F5F5F3;border:0.5px solid #CCC;border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:44px;margin-top:12px">
+      <div style="width:7px;height:7px;border-radius:50%;background:#999;flex-shrink:0"></div>
+      <span style="font-size:13px;color:#666;flex:1">Diese ${lbl()} wurde noch nicht gestartet — klicke auf einen Schüler / eine Schülerin um zu beginnen.</span>
+      <button class="btn btn-secondary btn-sm" style="visibility:hidden">Platzhalter</button>
+    </div>`;
+  } else {
+    banner.innerHTML=`<div style="background:#FFF8E1;border:0.5px solid #FFC000;border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:44px;margin-top:12px">
+      <div style="width:7px;height:7px;border-radius:50%;background:#FFC000;flex-shrink:0"></div>
+      <span style="font-size:13px;color:#7a5c00;flex:1">${done} von ${total} Schüler:innen erfasst.</span>
+      <button class="btn btn-secondary btn-sm" style="visibility:hidden">Platzhalter</button>
+    </div>`;
+  }
+  renderLektionenProgressBar();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────
+function renderDashboardFull(){
+  const hasData=Object.values(S.bewertungen).some(lb=>Object.values(lb).some(sr=>Object.keys(sr).length>0));
+  document.getElementById('dashboard-noop').style.display=hasData?'none':'flex';
+  document.getElementById('dashboard-content').style.display=hasData?'':'none';
+  if(!hasData) return;
+  const sel=document.getElementById('db-schueler');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- Schüler:in wählen --</option>'+S.schueler.map(s=>`<option value="${s.id}">${s.vorname} ${s.nachname}</option>`).join('');
+  if(cur&&S.schueler.find(s=>s.id===cur)) sel.value=cur;
+  else if(S.schueler.length) sel.value=S.schueler[0].id;
+  const indSel=document.getElementById('verlauf-ind');
+  const curInd=indSel.value;
+  indSel.innerHTML=S.indikatoren.map(ind=>`<option value="${ind.id}">${ind.compShort} – ${ind.text}</option>`).join('');
+  if(curInd&&S.indikatoren.find(i=>i.id===curInd)) indSel.value=curInd;
+  renderDashboard();
+}
+function renderDashboard(){ setTimeout(()=>renderVerlauf(), 0); renderBoxplots(); renderOverview(); }
+
+function renderVerlauf(){
+  const sId=document.getElementById('db-schueler').value;
+  const indId=document.getElementById('verlauf-ind').value;
+  const canvas=document.getElementById('verlauf-canvas');
+  const ctx=canvas.getContext('2d');
+  const wrap=canvas.parentElement;
+  const dpr=window.devicePixelRatio||1;
+  // Reset to 0 first so wrap doesn't get inflated by canvas
+  canvas.width=0; canvas.height=0;
+  canvas.style.width='0'; canvas.style.height='0';
+  const W = Math.min(wrap.offsetWidth||300, window.innerWidth - 88);
+  const H=220;
+  const pad={t:20,r:10,b:48,l:36};
+  canvas.width=Math.round(W*dpr);
+  canvas.height=Math.round(H*dpr);
+  canvas.style.width=W+'px';
+  canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.rect(0,0,W,H);
+  ctx.clip();
+  if(!sId||!indId) return;
+  const margin=20;
+  const chartL=pad.l+margin, chartR=W-pad.r-margin;
+  const chartW=chartR-chartL;
+  const cH=H-pad.t-pad.b;
+  const nL=S.lektionen.length;
+  const slot=chartW/nL;
+  const xp=i=>chartL+slot*i+slot*0.5;
+  const yp=r=>pad.t+cH-((r-1)/3)*cH;
+  const pts=S.lektionen.map((l,i)=>{
+    const r=((S.bewertungen[l.id]||{})[sId]||{})[indId];
+    return {x:i,name:l.name,r:(r!==undefined&&r>0)?r:null};
+  }).filter(p=>p.r!==null);
+  if(!pts.length){
+    ctx.fillStyle='#8A8680'; ctx.font='13px DM Sans,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Noch keine Daten für diesen Indikator',W/2,H/2); return;
+  }
+  // Grid
+  ctx.strokeStyle='#E2E0DC'; ctx.lineWidth=1;
+  for(let y=1;y<=4;y++){
+    const yy=yp(y);
+    ctx.beginPath(); ctx.moveTo(chartL,yy); ctx.lineTo(chartR,yy); ctx.stroke();
+    ctx.fillStyle='#8A8680'; ctx.font='11px DM Sans,sans-serif'; ctx.textAlign='right';
+    ctx.fillText(RL[y],pad.l-5,yy+4);
+  }
+  // X labels
+  ctx.fillStyle='#8A8680'; ctx.textAlign='center'; ctx.font='11px DM Sans,sans-serif';
+  S.lektionen.forEach((l,i)=>{ ctx.fillText('L'+(i+1), xp(i), pad.t+cH+18); });
+  // Line
+  ctx.strokeStyle='#1A1916'; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.beginPath();
+  pts.forEach((p,i)=>{ i===0?ctx.moveTo(xp(p.x),yp(p.r)):ctx.lineTo(xp(p.x),yp(p.r)); });
+  ctx.stroke();
+  // Dots
+  pts.forEach(p=>{
+    ctx.beginPath(); ctx.arc(xp(p.x),yp(p.r),5,0,Math.PI*2);
+    ctx.fillStyle=RC[p.r]; ctx.fill();
+    ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
+  });
+  document.getElementById('verlauf-legend').innerHTML=[1,2,3,4].map(r=>`<span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:${RC[r]};display:inline-block"></span>${RL[r]} ${RN[r]}</span>`).join('');
+  // Position legend just below canvas
+  const legendEl=document.getElementById('verlauf-legend');
+  const containerH=document.querySelector('.verlauf-container').offsetHeight;
+  legendEl.style.marginTop = Math.max(4, H - containerH - 4) + 'px';
+  ctx.restore();
+}
+
+function renderBoxplots(){
+  const sId=document.getElementById('db-schueler').value;
+  const grid=document.getElementById('comp-columns');
+  if(!sId){grid.innerHTML='';return;}
+  const byComp={};
+  S.indikatoren.forEach(ind=>{ if(!byComp[ind.compId]) byComp[ind.compId]={label:ind.compLabel,color:ind.compColor,short:ind.compShort,items:[]}; byComp[ind.compId].items.push(ind); });
+  const nCols=Object.keys(byComp).length;
+  // Either all fit side by side (min 200px each) or all stack
+  const availW = document.getElementById('tab-dashboard')?.clientWidth || window.innerWidth;
+  const cols=(availW >= nCols*200) ? nCols : 1;
+  grid.style.setProperty('--comp-cols', cols);
+  grid.innerHTML=Object.values(byComp).map(g=>{
+    let rows='';
+    g.items.forEach(ind=>{
+      const ratings=S.lektionen.map(l=>{ const r=((S.bewertungen[l.id]||{})[sId]||{})[ind.id]; return(r!==undefined&&r>0)?r:null; }).filter(r=>r!==null);
+      const vorschlag=ratings.length>0?Math.round(ratings.reduce((a,b)=>a+b,0)/ratings.length):0;
+      const vSym=['','–','=','+','++'][vorschlag]||'?';
+      const vColor=vorschlag?['','#C00000','#FB8C00','#10B981','#3B82F6'][vorschlag]:'';
+      rows+=`<div class="boxplot-row">
+        <div class="boxplot-label">${ind.text}</div>
+        <div class="boxplot-chart-row">
+          <div style="flex:1;min-width:0">
+            <div class="boxplot-chart" style="cursor:pointer" onclick="showBpModal('${sId}','${ind.id}')" title="Details anzeigen">${ratings.length?drawBoxplot(ratings):'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:var(--dim)">–</span>'}</div>
+            <div class="boxplot-scale"><span>–</span><span>=</span><span>+</span><span>++</span></div>
+          </div>
+          <span class="vorschlag-badge" style="${vorschlag?`background:${vColor}20;color:${vColor}`:''}">
+            ${vorschlag?vSym:'?'}
+          </span>
+        </div>
+      </div>`;
+    });
+    return `<div class="card">
+      <div class="card-header">
+        <div style="width:10px;height:10px;border-radius:50%;background:${g.color};flex-shrink:0"></div>
+        <div class="card-title" style="color:${g.color}">${g.short} – ${g.label}</div>
+      </div>
+      <div class="card-body" style="overflow-x:hidden">${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+function drawBoxplot(ratings){
+  const s=[...ratings].sort((a,b)=>a-b);
+  const min=s[0],max=s[s.length-1];
+  function p(a,pp){ if(a.length===1)return a[0]; const i=(a.length-1)*pp,lo=Math.floor(i),hi=Math.ceil(i),w=i-lo; return hi>=a.length?a[lo]:a[lo]*(1-w)+a[hi]*w; }
+  const q1=p(s,.25),med=p(s,.5),q3=p(s,.75);
+  const sc=v=>2+((v-1)/3)*96;
+  const [mnP,mxP,q1P,q3P,mP]=[sc(min),sc(max),sc(q1),sc(q3),sc(med)];
+  let h='<div class="boxplot-track"></div>';
+  if(min===max){ h+=`<div class="boxplot-median" style="left:${mP}%;transform:translateX(-50%)"></div>`; return h; }
+  if(min<q1) h+=`<div class="boxplot-whisker-end" style="left:${mnP}%;transform:translateX(-50%)"></div><div class="boxplot-whisker" style="left:${mnP}%;width:${q1P-mnP}%"></div>`;
+  if(q1===q3) h+=`<div class="boxplot-median" style="left:${mP}%;transform:translateX(-50%)"></div>`;
+  else h+=`<div class="boxplot-box" style="left:${q1P}%;width:${q3P-q1P}%"></div><div class="boxplot-median" style="left:${mP}%;transform:translateX(-50%)"></div>`;
+  if(max>q3) h+=`<div class="boxplot-whisker" style="left:${q3P}%;width:${mxP-q3P}%"></div><div class="boxplot-whisker-end" style="left:${mxP}%;transform:translateX(-50%)"></div>`;
+  return h;
+}
+
+function renderOverview(){
+  const sId=document.getElementById('db-schueler').value;
+  const c=document.getElementById('overview-table');
+  if(!sId||!S.lektionen.length){c.innerHTML='';return;}
+  let h=`<table class="overview-table"><thead><tr><th>Indikator</th>${S.lektionen.map(l=>`<th>${l.name}</th>`).join('')}</tr></thead><tbody>`;
+  S.indikatoren.forEach(ind=>{
+    h+=`<tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${ind.compColor};display:inline-block;flex-shrink:0"></span><span style="font-size:11px"><strong>${ind.compShort}</strong> – ${ind.text}</span></span></td>`;
+    S.lektionen.forEach(l=>{
+      const r=((S.bewertungen[l.id]||{})[sId]||{})[ind.id];
+      if(r===undefined) h+=`<td><span style="color:var(--dim2);font-size:11px">–</span></td>`;
+      else if(r===0) h+=`<td><span class="rating-dot" style="background:#9E9E9E">→</span></td>`;
+      else h+=`<td><span class="rating-dot" style="background:${RC[r]}">${RL[r]}</span></td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  c.innerHTML=h;
+}
+
+// ─── DATEN ───────────────────────────────────────────
+function renderDatenInfo(){
+  const el=document.getElementById('daten-info');
+  const totalRatings=Object.values(S.bewertungen).reduce((sum,lb)=>
+    sum+Object.values(lb).reduce((s,sr)=>s+Object.keys(sr).length,0),0);
+  el.innerHTML=`<div class="card" style="padding:16px 20px;margin-bottom:0">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px">
+    ${[
+      [S.projektName||'–','Projekt'],
+      [S.schueler.length,'Schüler:innen'],
+      [S.lektionen.length,'Lektionen'],
+      [S.indikatoren.length,'Indikatoren'],
+      [totalRatings,'Beurteilungen'],
+    ].map(([val,lbl])=>`<div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px">${val}</span>
+      <span style="font-size:11px;color:var(--dim);font-weight:500">${lbl}</span>
+    </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function exportJSON(){
+  const data=JSON.stringify({version:1, exportDate:new Date().toISOString(), state:S}, null, 2);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(S.projektName||'makeredu-tracker')+'-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast('Exportiert','success');
+}
+
+function importJSON(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.state) throw new Error('Ungültiges Format');
+      showConfirm('Import','Achtung: alle bestehenden Daten dieses Projekts werden überschrieben. Fortfahren?','Importieren',()=>{
+        S=data.state;
+        S.schueler.sort((a,b)=>a.vorname.localeCompare(b.vorname)||a.nachname.localeCompare(b.nachname));
+        save(); refreshUI();
+        showToast('Importiert — '+S.schueler.length+' Schüler:innen, '+S.lektionen.length+' Lektionen','success');
+      });
+    }catch(err){
+      showToast('Fehler: '+err.message,'error');
+    }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function resetAll(){
+  showConfirm('Alle Daten löschen', 'Wirklich alle Daten dieses Projekts löschen? Diese Aktion kann nicht rückgängig gemacht werden. Vorher exportieren empfohlen.', 'Alles löschen', ()=>{
+    S={projektName:'',klasse:'',lektionLabel:'',indikatoren:[],schueler:[],lektionen:[],bewertungen:{}};
+    save();
+    refreshUI();
+    showToast('Alle Daten gelöscht','success');
+    showTab('setup');
+  });
+}
+
+// ─── TOAST ───────────────────────────────────────────
+let toastT;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'')+' show';
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ─── INIT ────────────────────────────────────────────
+load();
+refreshUI();
+updateSetupCols();
+const _savedTab=sessionStorage.getItem('mke-tab');
+showTab(['setup','erfassung','dashboard','daten'].includes(_savedTab)?_savedTab:'setup');
+window.addEventListener('resize',()=>{
+  const d=document.getElementById('tab-dashboard');
+  if(d&&d.style.display!=='none'){ setTimeout(()=>renderVerlauf(),0); renderBoxplots(); }
+  const s=document.getElementById('tab-setup');
+  if(s&&s.style.display!=='none') updateSetupCols();
+});
+</script>
+</body>
+</html>

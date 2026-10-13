@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1A1A1A">
+<title>STL-Viewer · MakerEdu</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A1A1A'/%3E%3Cpath d='M8 23V9h3.5L16 16l4.5-7H24v14h-3v-9l-4.2 6.4h-1.6L11 14v9z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ===== MakerEdu-Grundblock — in allen Werkzeugen wortgleich ===== */
+  --ink:#1A1A1A;
+  --ink-soft:#8A8680;
+  --ink-faint:#B5B2AC;
+  --paper:#FFFFFF;
+  --surface:#F5F4F1;
+  --line:#E2E0DC;
+  --line-lt:#EEEDE9;
+  --grid:#EDEBE6;
+  --grid-10:#DCD9D3;
+  --accent:#2E6E6B;
+  --accent-dark:#255957;
+  --accent-soft:#EAF1EF;
+  --bad:#DC2626;
+  --bad-soft:rgba(220,38,38,.10);
+  --warn:#D97706;
+  --warn-bg:#FFFBEB;
+  --warn-soft:rgba(217,119,6,.12);
+  --warn-ink:#92400E;
+  --radius:8px;
+  --radius-sm:5px;
+  --shadow:0 1px 4px rgba(0,0,0,.07);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  margin:0;height:100vh;height:100dvh;overflow:hidden;
+  font-family:'DM Sans',Inter,"Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.45;color:var(--ink);background:var(--surface);
+  font-variant-numeric:tabular-nums;
+  display:flex;flex-direction:column;
+}
+button,input,select{font:inherit;font-variant-numeric:tabular-nums;color:inherit}
+
+/* ===== Kopfzeile — in allen Werkzeugen wortgleich ===== */
+.app-header{
+  flex:0 0 auto;background:#1A1A1A;color:#fff;padding:0;height:52px;
+  display:flex;align-items:center;z-index:200;
+}
+.app-header-inner{
+  max-width:1400px;width:100%;margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;gap:12px;height:52px;position:relative;
+}
+.app-header-link{
+  display:flex;align-items:center;gap:10px;text-decoration:none;
+  flex-shrink:0;opacity:1;transition:opacity .15s;
+}
+.app-header-link:hover{opacity:.75}
+.app-header-mark{
+  width:28px;height:28px;background:#FFF;border-radius:6px;display:grid;
+  place-items:center;color:#1A1A1A;font-weight:700;font-size:13px;flex-shrink:0;
+}
+.app-header-brand{color:#FFF;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.app-header-sep{color:rgba(255,255,255,.35);font-size:15px;margin:0 2px}
+.app-header h1{
+  margin:0;font-size:15px;font-weight:500;letter-spacing:-.2px;
+  color:rgba(255,255,255,.6);flex:1;
+}
+.header-badge{
+  font-size:10px;font-weight:500;background:rgba(255,255,255,.15);
+  padding:3px 9px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;
+}
+
+/* ===== Schaltflächen — in allen Werkzeugen wortgleich ===== */
+.btn{
+  padding:9px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--surface);cursor:pointer;font-size:13px;font-weight:500;
+  transition:border-color .15s,background .15s;
+}
+.btn:hover{border-color:var(--ink-soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+.btn.wide{width:100%;text-align:center;justify-content:center}
+.btn.tiny{padding:6px 12px;font-size:12px}
+.btn:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ===== Ansichtsfläche ===== */
+main{flex:1 1 auto;display:flex;min-height:0}
+#stage{flex:1 1 auto;position:relative;background:var(--grid);min-width:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+#empty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;padding:24px;gap:14px}
+#empty[hidden],#readout[hidden]{display:none}
+.panel{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-md);padding:20px 22px;max-width:360px;text-align:center;
+  display:grid;gap:13px;justify-items:center;
+}
+.panel.over{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.panel h2{
+  margin:0;font-size:11px;font-weight:600;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.6px;
+}
+.panel p{margin:0;font-size:13px;line-height:1.5;color:var(--ink-soft)}
+#err{font-size:12.5px;color:var(--bad);min-height:1em;text-align:center}
+
+/* ===== Infoleiste ===== */
+#readout{
+  flex:0 0 auto;background:var(--paper);border-top:1px solid var(--line);
+  padding:9px 24px calc(9px + env(safe-area-inset-bottom));
+  display:flex;gap:26px;align-items:center;overflow-x:auto;
+}
+.field{min-width:0}
+.field .label{
+  font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--ink-soft);margin-bottom:2px;white-space:nowrap;
+}
+.field .value{font-size:13px;font-weight:500;white-space:nowrap}
+.field.file{flex:1;min-width:90px}
+.field.file .value{overflow:hidden;text-overflow:ellipsis}
+.tools{margin-left:auto;display:flex;gap:6px;align-items:center;flex:0 0 auto}
+.hint{font-size:11.5px;color:var(--ink-faint);white-space:nowrap;margin-right:6px}
+@media (max-width:900px){
+  .app-header-inner,#readout{padding-left:14px;padding-right:14px}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-header-inner">
+    <a href="https://makeredu-tools.github.io/" class="app-header-link">
+      <div class="app-header-mark">M</div>
+      <span class="app-header-brand">MakerEdu</span>
+    </a>
+    <span class="app-header-sep">›</span>
+    <h1>STL-Viewer</h1>
+    <span class="header-badge" id="dim-badge">keine Datei</span>
+  </div>
+</div>
+
+<main>
+  <div id="stage">
+    <canvas id="gl" tabindex="0"></canvas>
+    <div id="empty">
+      <div class="panel" id="drop">
+        <h2>Keine Datei geladen</h2>
+        <p>STL-Datei öffnen oder hierher ziehen. Die Datei bleibt auf dem Gerät, es wird nichts hochgeladen.</p>
+        <button class="btn primary" id="open2">STL-Datei öffnen</button>
+      </div>
+      <div id="err"></div>
+    </div>
+  </div>
+</main>
+
+<div id="readout" hidden>
+  <div class="field file"><div class="label">Datei</div><div class="value" id="v-file">–</div></div>
+  <div class="field"><div class="label">Dreiecke</div><div class="value" id="v-tri">–</div></div>
+  <div class="field"><div class="label">Abmessungen</div><div class="value" id="v-dim">–</div></div>
+  <div class="tools">
+    <span class="hint">Ziehen dreht · zwei Finger zoomen</span>
+    <button class="btn tiny" id="reset" title="Dreht das Modell zurück in die Schrägansicht und passt die Grösse ein">Ansicht zurücksetzen</button>
+    <button class="btn tiny primary" id="open">Datei öffnen</button>
+  </div>
+</div>
+
+<input type="file" id="file" accept=".stl,model/stl,application/sla" hidden>
+
+<script>
+"use strict";
+(function(){
+
+/* ---------- Matrix-Helfer (column-major) ---------- */
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const norm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
+
+function perspective(fovy,aspect,near,far){
+  const f=1/Math.tan(fovy/2), nf=1/(near-far);
+  return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,2*far*near*nf,0]);
+}
+function lookAt(eye,target,up){
+  const z=norm(sub(eye,target));
+  let x=cross(up,z);
+  if(Math.hypot(x[0],x[1],x[2])<1e-6) x=cross([0,1,0],z);
+  x=norm(x);
+  const y=cross(z,x);
+  return {m:new Float32Array([
+    x[0],y[0],z[0],0,
+    x[1],y[1],z[1],0,
+    x[2],y[2],z[2],0,
+    -dot(x,eye),-dot(y,eye),-dot(z,eye),1
+  ]), x, y, z};
+}
+
+/* ---------- STL einlesen ---------- */
+function parseSTL(buffer){
+  const dv=new DataView(buffer);
+  let ascii=true;
+  if(buffer.byteLength>=84){
+    const n=dv.getUint32(80,true);
+    if(84+n*50===buffer.byteLength) ascii=false;
+  }
+  return ascii ? parseAscii(buffer) : parseBinary(dv);
+}
+function parseBinary(dv){
+  const n=dv.getUint32(80,true);
+  const pos=new Float32Array(n*9);
+  let o=84,k=0;
+  for(let i=0;i<n;i++){
+    o+=12;                                   // Normale aus Datei ignorieren
+    for(let v=0;v<9;v++){ pos[k++]=dv.getFloat32(o,true); o+=4; }
+    o+=2;
+  }
+  return pos;
+}
+function parseAscii(buffer){
+  const text=new TextDecoder().decode(buffer);
+  const re=/vertex\s+(-?[\d.eE+-]+)\s+(-?[\d.eE+-]+)\s+(-?[\d.eE+-]+)/g;
+  const out=[]; let m;
+  while((m=re.exec(text))!==null){ out.push(+m[1],+m[2],+m[3]); }
+  if(out.length<9 || out.length%9!==0) throw new Error("Datei enthält keine gültigen Dreiecke.");
+  return new Float32Array(out);
+}
+function faceNormals(pos){
+  const nor=new Float32Array(pos.length);
+  for(let i=0;i<pos.length;i+=9){
+    const ax=pos[i+3]-pos[i], ay=pos[i+4]-pos[i+1], az=pos[i+5]-pos[i+2];
+    const bx=pos[i+6]-pos[i], by=pos[i+7]-pos[i+1], bz=pos[i+8]-pos[i+2];
+    let nx=ay*bz-az*by, ny=az*bx-ax*bz, nz=ax*by-ay*bx;
+    const l=Math.hypot(nx,ny,nz)||1; nx/=l; ny/=l; nz/=l;
+    for(let v=0;v<3;v++){ nor[i+v*3]=nx; nor[i+v*3+1]=ny; nor[i+v*3+2]=nz; }
+  }
+  return nor;
+}
+
+/* ---------- WebGL ---------- */
+const canvas=document.getElementById("gl");
+const gl=canvas.getContext("webgl",{antialias:true,alpha:false});
+if(!gl){ document.getElementById("err").textContent="WebGL ist auf diesem Gerät nicht verfügbar."; return; }
+
+function program(vsSrc,fsSrc){
+  const c=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);
+    if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));return sh;};
+  const p=gl.createProgram();
+  gl.attachShader(p,c(gl.VERTEX_SHADER,vsSrc));
+  gl.attachShader(p,c(gl.FRAGMENT_SHADER,fsSrc));
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+const meshProg=program(`
+  attribute vec3 aPos; attribute vec3 aNor;
+  uniform mat4 uProj, uView;
+  varying vec3 vN, vP;
+  void main(){ vec4 p=uView*vec4(aPos,1.0); vP=p.xyz; vN=mat3(uView)*aNor; gl_Position=uProj*p; }
+`,`
+  precision mediump float;
+  varying vec3 vN, vP;
+  uniform vec3 uColor;
+  void main(){
+    vec3 N=normalize(vN);
+    if(!gl_FrontFacing) N=-N;
+    vec3 V=normalize(-vP);
+    vec3 L1=normalize(vec3(0.30,0.60,0.80));
+    vec3 L2=normalize(vec3(-0.70,-0.20,0.30));
+    float d=max(dot(N,L1),0.0)*0.72+max(dot(N,L2),0.0)*0.18;
+    float amb=0.26+0.10*N.y;
+    float s=pow(max(dot(reflect(-L1,N),V),0.0),32.0)*0.12;
+    float edge=1.0-0.22*pow(1.0-max(dot(N,V),0.0),2.5);   // Silhouette leicht abdunkeln
+    gl_FragColor=vec4(uColor*(amb+d)*edge+vec3(s),1.0);
+  }
+`);
+
+const lineProg=program(`
+  attribute vec3 aPos;
+  uniform mat4 uProj, uView;
+  void main(){ gl_Position=uProj*uView*vec4(aPos,1.0); }
+`,`
+  precision mediump float;
+  uniform vec3 uColor;
+  void main(){ gl_FragColor=vec4(uColor,1.0); }
+`);
+
+const buf={pos:gl.createBuffer(), nor:gl.createBuffer(), grid:gl.createBuffer()};
+let triCount=0, gridCount=0;
+
+/* ---------- Kamera ---------- */
+const FOV=45*Math.PI/180;
+let az=-2.30, el=0.52, dist=10, target=[0,0,0], radius=1, dirty=true;
+
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.round(canvas.clientWidth*dpr), h=Math.round(canvas.clientHeight*dpr);
+  if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; dirty=true; }
+}
+function camera(){
+  const ce=Math.cos(el);
+  const eye=[target[0]+dist*ce*Math.cos(az), target[1]+dist*ce*Math.sin(az), target[2]+dist*Math.sin(el)];
+  return lookAt(eye,target,[0,0,1]);
+}
+function render(){
+  resize();
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.clearColor(0.929,0.922,0.902,1);          // --grid #EDEBE6
+  gl.enable(gl.DEPTH_TEST);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  if(!triCount) return;
+
+  const cam=camera();
+  const proj=perspective(FOV, canvas.width/canvas.height,
+    Math.max(dist*0.01, radius*0.002), dist+radius*8);
+
+  if(gridCount){
+    gl.useProgram(lineProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(lineProg,"uProj"),false,proj);
+    gl.uniformMatrix4fv(gl.getUniformLocation(lineProg,"uView"),false,cam.m);
+    gl.uniform3f(gl.getUniformLocation(lineProg,"uColor"),0.863,0.851,0.827); // --grid-10 #DCD9D3
+    const a=gl.getAttribLocation(lineProg,"aPos");
+    gl.bindBuffer(gl.ARRAY_BUFFER,buf.grid);
+    gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a,3,gl.FLOAT,false,0,0);
+    gl.drawArrays(gl.LINES,0,gridCount);
+  }
+
+  gl.useProgram(meshProg);
+  gl.uniformMatrix4fv(gl.getUniformLocation(meshProg,"uProj"),false,proj);
+  gl.uniformMatrix4fv(gl.getUniformLocation(meshProg,"uView"),false,cam.m);
+  gl.uniform3f(gl.getUniformLocation(meshProg,"uColor"),0.80,0.79,0.77);
+  const ap=gl.getAttribLocation(meshProg,"aPos"), an=gl.getAttribLocation(meshProg,"aNor");
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.pos);
+  gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.nor);
+  gl.enableVertexAttribArray(an); gl.vertexAttribPointer(an,3,gl.FLOAT,false,0,0);
+  gl.drawArrays(gl.TRIANGLES,0,triCount*3);
+}
+function loop(){ if(dirty){ dirty=false; render(); } requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.addEventListener("resize",()=>{dirty=true;});
+
+/* ---------- Modell laden ---------- */
+function niceStep(span){
+  const raw=span/8, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  return (f<1.5?1:f<3.5?2:f<7.5?5:10)*p;
+}
+function buildGrid(min,max){
+  const step=niceStep(Math.max(max[0]-min[0],max[1]-min[1]));
+  const pad=step*2;
+  const x0=Math.floor((min[0]-pad)/step)*step, x1=Math.ceil((max[0]+pad)/step)*step;
+  const y0=Math.floor((min[1]-pad)/step)*step, y1=Math.ceil((max[1]+pad)/step)*step;
+  const z=min[2], v=[];
+  for(let x=x0;x<=x1+1e-6;x+=step) v.push(x,y0,z, x,y1,z);
+  for(let y=y0;y<=y1+1e-6;y+=step) v.push(x0,y,z, x1,y,z);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.grid);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(v),gl.STATIC_DRAW);
+  gridCount=v.length/3;
+}
+const fmt=n=>(Math.round(n*100)/100).toLocaleString("de-CH");
+
+let lastSize=[1,1,1];
+function resetView(size){
+  if(size) lastSize=size;
+  target=[0,0,lastSize[2]/2];
+  az=-2.30; el=0.52;
+  dist=radius/Math.sin(FOV/2)*1.15;
+  dirty=true;
+}
+
+function load(pos,name){
+  const min=[Infinity,Infinity,Infinity], max=[-Infinity,-Infinity,-Infinity];
+  for(let i=0;i<pos.length;i+=3){
+    for(let k=0;k<3;k++){ const v=pos[i+k]; if(v<min[k])min[k]=v; if(v>max[k])max[k]=v; }
+  }
+  const size=[max[0]-min[0],max[1]-min[1],max[2]-min[2]];
+  const off=[(min[0]+max[0])/2,(min[1]+max[1])/2,min[2]];   // zentrieren, Unterkante auf z=0
+  for(let i=0;i<pos.length;i+=3){ pos[i]-=off[0]; pos[i+1]-=off[1]; pos[i+2]-=off[2]; }
+
+  const nor=faceNormals(pos);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.pos); gl.bufferData(gl.ARRAY_BUFFER,pos,gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.nor); gl.bufferData(gl.ARRAY_BUFFER,nor,gl.STATIC_DRAW);
+  triCount=pos.length/9;
+
+  buildGrid([-size[0]/2,-size[1]/2,0],[size[0]/2,size[1]/2,0]);
+  radius=Math.hypot(size[0],size[1],size[2])/2 || 1;
+  resetView(size);
+
+  const dim=fmt(size[0])+" × "+fmt(size[1])+" × "+fmt(size[2])+" mm";
+  document.getElementById("v-file").textContent=name;
+  document.getElementById("v-tri").textContent=triCount.toLocaleString("de-CH");
+  document.getElementById("v-dim").textContent=dim;
+  document.getElementById("dim-badge").textContent=dim;
+  document.getElementById("readout").hidden=false;
+  document.getElementById("empty").hidden=true;
+}
+
+function openFile(file){
+  const err=document.getElementById("err");
+  err.textContent="";
+  const r=new FileReader();
+  r.onload=()=>{ try{ load(parseSTL(r.result),file.name); }
+                 catch(e){ err.textContent="Datei konnte nicht gelesen werden: "+e.message; } };
+  r.onerror=()=>{ err.textContent="Datei konnte nicht gelesen werden."; };
+  r.readAsArrayBuffer(file);
+}
+
+/* ---------- Bedienung ---------- */
+const input=document.getElementById("file");
+const pick=()=>input.click();
+document.getElementById("open").addEventListener("click",pick);
+document.getElementById("open2").addEventListener("click",pick);
+document.getElementById("reset").addEventListener("click",()=>resetView());
+input.addEventListener("change",()=>{ if(input.files[0]) openFile(input.files[0]); input.value=""; });
+
+const drop=document.getElementById("drop");
+["dragenter","dragover"].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over");}));
+document.addEventListener("drop",e=>{ const f=e.dataTransfer.files[0]; if(f) openFile(f); });
+
+const pointers=new Map();
+let prevDist=null, prevMid=null;
+const pixelScale=()=>2*Math.tan(FOV/2)*dist/canvas.clientHeight;
+
+function orbit(dx,dy){ az-=dx*0.008; el=Math.max(-1.53,Math.min(1.53,el+dy*0.008)); dirty=true; }
+function pan(dx,dy){
+  const cam=camera(), k=pixelScale();
+  for(let i=0;i<3;i++) target[i]+= -cam.x[i]*dx*k + cam.y[i]*dy*k;
+  dirty=true;
+}
+function zoom(f){ dist=Math.max(radius*0.05,Math.min(radius*60,dist*f)); dirty=true; }
+
+canvas.addEventListener("pointerdown",e=>{
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  prevDist=null; prevMid=null;
+});
+canvas.addEventListener("pointermove",e=>{
+  const p=pointers.get(e.pointerId); if(!p) return;
+  const dx=e.clientX-p.x, dy=e.clientY-p.y;
+  p.x=e.clientX; p.y=e.clientY;
+  if(pointers.size===1){
+    if(e.shiftKey || (e.buttons&2)) pan(dx,dy); else orbit(dx,dy);
+  }else if(pointers.size===2){
+    const [a,b]=[...pointers.values()];
+    const d=Math.hypot(a.x-b.x,a.y-b.y);
+    const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    if(prevDist){ zoom(prevDist/d); pan(mid.x-prevMid.x,mid.y-prevMid.y); }
+    prevDist=d; prevMid=mid;
+  }
+});
+["pointerup","pointercancel"].forEach(t=>canvas.addEventListener(t,e=>{
+  pointers.delete(e.pointerId); prevDist=null; prevMid=null;
+}));
+canvas.addEventListener("wheel",e=>{ e.preventDefault(); zoom(Math.exp(e.deltaY*0.0015)); },{passive:false});
+canvas.addEventListener("contextmenu",e=>e.preventDefault());
+window.addEventListener("keydown",e=>{ if(e.key==="r"||e.key==="R") resetView(); });
+
+})();
+</script>
+</body>
+</html>

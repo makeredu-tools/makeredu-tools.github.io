@@ -1,0 +1,52 @@
+MakerEdu Tools
+Copyright (c) 2026 Raphael Fisch
+
+Dieses Repository enthält Inhalte unter zwei verschiedenen Lizenzen.
+
+
+1. TOOLS (Code und Gestaltung)
+
+Alle Dateien dieses Repositorys, mit Ausnahme der unter Punkt 2 genannten
+Texte, stehen unter der Lizenz
+
+    Creative Commons Namensnennung - Nicht kommerziell -
+    Weitergabe unter gleichen Bedingungen 4.0 International
+    (CC BY-NC-SA 4.0)
+
+    Kurzfassung: https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de
+    Lizenzvertrag: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.de
+
+Namensnennung: «MakerEdu Tools, Raphael Fisch,
+https://github.com/makeredu-tools/makeredu-tools.github.io»
+
+Für Nutzungen ausserhalb dieser Lizenz (z. B. kommerziell) kann über ein
+Issue im Repository angefragt werden.
+
+
+2. KOMPETENZFELDER UND INDIKATORTEXTE
+
+Die Kompetenzfelder und Kompetenzindikatoren in
+beurteilung/generator.html und beurteilung/tracker.html basieren auf:
+
+    Ingold, S. & Maurer, B. (Hrsg.) (2024). Making und Schule.
+    Praxishandbuch für Schulentwicklung und Unterricht. München: kopaed.
+    Kapitel 3.2.1 und 5.6.
+
+Sie stehen unter der Lizenz
+
+    Creative Commons Namensnennung 4.0 International (CC BY 4.0)
+
+    Kurzfassung: https://creativecommons.org/licenses/by/4.0/deed.de
+    Lizenzvertrag: https://creativecommons.org/licenses/by/4.0/legalcode.de
+
+Die Texte wurden angepasst und ergänzt.
+
+
+3. KOMPONENTEN DRITTER
+
+Die Tools laden zur Laufzeit folgende Komponenten, die unter ihren eigenen
+Lizenzen stehen:
+
+    jsPDF          MIT License                https://github.com/parallax/jsPDF
+    SheetJS        Apache License 2.0         https://sheetjs.com
+    DM Sans        SIL Open Font License 1.1  https://fonts.google.com/specimen/DM+Sans

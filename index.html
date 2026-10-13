@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MakerEdu Tools</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A1A1A'/%3E%3Cpath d='M8 23V9h3.5L16 16l4.5-7H24v14h-3v-9l-4.2 6.4h-1.6L11 14v9z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F8F8F6;
+  --surface:#FFF;
+  --border:#E2E0DC;
+  --text:#1A1A1A;
+  --muted:#8A8780;
+  --font:'DM Sans',-apple-system,sans-serif;
+  --c-red:#C00000;
+  --c-green:#70AD47;
+  --c-yellow:#FFC000;
+  --c-blue:#5B9BD5;
+  --c-teal:#2E6E6B;
+}
+html,body{min-height:100vh;min-height:100dvh;}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:48px 20px;
+}
+
+/* Header */
+.header{text-align:center;margin-bottom:48px;}
+.logo{display:inline-flex;align-items:center;gap:12px;margin-bottom:16px;}
+.logo-mark{width:40px;height:40px;border-radius:10px;background:#1A1A1A;display:grid;place-items:center;color:white;font-size:18px;font-weight:700;}
+.logo-text{font-size:22px;font-weight:700;letter-spacing:-0.5px;}
+.header p{font-size:15px;color:var(--muted);max-width:400px;line-height:1.6;margin:0 auto;}
+.dot-strip{display:flex;gap:6px;justify-content:center;margin-bottom:16px;}
+.dot{width:8px;height:8px;border-radius:50%;}
+
+/* Sections */
+.section{width:100%;max-width:860px;margin-bottom:40px;}
+.section-label{
+  font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:0.8px;color:var(--muted);
+  margin-bottom:14px;padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+@media(max-width:580px){.cards{grid-template-columns:1fr;}}
+
+/* Card */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:28px;text-decoration:none;color:var(--text);
+  display:flex;flex-direction:column;gap:14px;
+  transition:transform 0.15s, box-shadow 0.15s;
+  position:relative;overflow:hidden;
+}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+.card:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,0.09);}
+
+.card-generator::before{background:linear-gradient(90deg,var(--c-red),var(--c-yellow));}
+.card-tracker::before{background:linear-gradient(90deg,var(--c-green),var(--c-blue));}
+.card-stl::before{background:linear-gradient(90deg,var(--c-teal),var(--c-blue));}
+.card-view::before{background:linear-gradient(90deg,var(--c-teal),var(--c-green));}
+.card-scan::before{background:linear-gradient(90deg,#8A5A00,var(--c-red));}
+
+.card-icon{font-size:26px;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;}
+.card-generator .card-icon{background:#FDECEA;}
+.card-tracker .card-icon{background:#F0F7EA;}
+.card-stl .card-icon{background:#DCE8E6;}
+.card-view .card-icon{background:#E4EEE4;}
+.card-scan .card-icon{background:#FBF2DE;}
+
+.card-title{font-size:17px;font-weight:700;letter-spacing:-0.3px;}
+.card-desc{font-size:13px;color:var(--muted);line-height:1.65;flex:1;}
+
+.badges{display:flex;gap:5px;flex-wrap:wrap;}
+.badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:100px;letter-spacing:0.3px;}
+.card-generator .badge{background:#FDECEA;color:var(--c-red);}
+.card-tracker .badge{background:#F0F7EA;color:#3a7a1f;}
+.card-stl .badge{background:#DCE8E6;color:var(--c-teal);}
+.card-view .badge{background:#E4EEE4;color:var(--c-teal);}
+.card-scan .badge{background:#FBF2DE;color:#8A5A00;}
+
+.card-cta{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:6px 0;border:none;background:none;cursor:pointer;font-family:var(--font);}
+.card-generator .card-cta{color:var(--c-red);}
+.card-tracker .card-cta{color:#3a7a1f;}
+.card-stl .card-cta{color:var(--c-teal);}
+.card-view .card-cta{color:var(--c-teal);}
+.card-scan .card-cta{color:#8A5A00;}
+.card-cta svg{width:16px;height:16px;transition:transform 0.15s;}
+.card:hover .card-cta svg{transform:translateX(4px);}
+
+.footer{margin-top:16px;font-size:11px;color:var(--muted);text-align:center;line-height:1.8;max-width:560px;}
+.footer a{color:inherit;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:2px;}
+.footer a:hover{color:var(--text);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">M</div>
+    <div class="logo-text">MakerEdu</div>
+  </div>
+  <div class="dot-strip">
+    <div class="dot" style="background:var(--c-red)"></div>
+    <div class="dot" style="background:var(--c-yellow)"></div>
+    <div class="dot" style="background:var(--c-green)"></div>
+    <div class="dot" style="background:var(--c-blue)"></div>
+  </div>
+  <p>Tools für den Making-Unterricht.</p>
+</div>
+
+<!-- Beurteilung -->
+<div class="section">
+  <div class="section-label">Beurteilung</div>
+  <div class="cards">
+
+    <a href="beurteilung/generator.html" class="card card-generator">
+      <div class="card-icon">📄</div>
+      <div class="card-title">Beurteilungs-Generator</div>
+      <div class="card-desc">Wähle Indikatoren aus vier Kompetenzbereichen und erstelle ein druckfertiges Beurteilungsblatt — für Selbst- und Fremdeinschätzung.</div>
+      <div class="badges">
+        <span class="badge">Personale Kompetenzen</span>
+        <span class="badge">Methodenkompetenzen</span>
+        <span class="badge">Soziale Kompetenzen</span>
+        <span class="badge">Fachkompetenzen</span>
+      </div>
+      <div class="card-cta">Generator öffnen <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </a>
+
+    <a href="beurteilung/tracker.html" class="card card-tracker">
+      <div class="card-icon">📊</div>
+      <div class="card-title">Lektions-Tracker</div>
+      <div class="card-desc">Beurteile Schüler:innen Lektion für Lektion. Verfolge den Verlauf über ein ganzes Projekt und werte aus mit Boxplots und Verlaufsgrafiken.</div>
+      <div class="badges">
+        <span class="badge">Verlauf pro Indikator</span>
+        <span class="badge">Boxplot-Auswertung</span>
+        <span class="badge">Export / Import</span>
+      </div>
+      <div class="card-cta">Tracker öffnen <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </a>
+
+  </div>
+</div>
+
+<!-- Digitale Werkzeuge -->
+<div class="section">
+  <div class="section-label">Digitale Werkzeuge</div>
+  <div class="cards">
+
+    <a href="werkzeuge/scan-digitizer.html" class="card card-scan">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">Scan-Digitizer</div>
+      <div class="card-desc">Lade einen Flachbettscan einer Skizze, setze den Nullpunkt, kalibriere den Massstab und exportiere ein massstabgetreues PDF.</div>
+      <div class="badges">
+        <span class="badge">Skizzen</span>
+        <span class="badge">Massstab</span>
+        <span class="badge">PDF Export</span>
+      </div>
+      <div class="card-cta">Tool öffnen <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </a>
+
+    <a href="werkzeuge/stl-viewer.html" class="card card-view">
+      <div class="card-icon">🧊</div>
+      <div class="card-title">STL-Viewer</div>
+      <div class="card-desc">Öffne eine STL-Datei und dreh sie frei im Raum. Zeigt Dreiecksanzahl und Abmessungen in Millimetern — direkt im Browser, auch auf dem Handy.</div>
+      <div class="badges">
+        <span class="badge">3D-Druck</span>
+        <span class="badge">Abmessungen</span>
+        <span class="badge">Offline</span>
+      </div>
+      <div class="card-cta">Tool öffnen <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </a>
+
+    <a href="werkzeuge/stl-zu-svg.html" class="card card-stl">
+      <div class="card-icon">🔷</div>
+      <div class="card-title">STL zu SVG</div>
+      <div class="card-desc">Konvertiere STL-Dateien vom 3D-Drucker in SVG-Aussenkonturen — für Laser Cutter, Plotter oder weitere Bearbeitung.</div>
+      <div class="badges">
+        <span class="badge">3D-Druck</span>
+        <span class="badge">Laser Cutter</span>
+        <span class="badge">SVG Export</span>
+      </div>
+      <div class="card-cta">Tool öffnen <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </a>
+
+  </div>
+</div>
+
+<div class="footer">
+  MakerEdu Tools · © Raphael Fisch · <a href="https://github.com/makeredu-tools/makeredu-tools.github.io">Quellcode auf GitHub</a><br>
+  Tools: <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.de">CC BY-NC-SA 4.0</a> ·
+  Kompetenzfelder und Indikatoren nach Ingold &amp; Maurer (Hrsg.) (2024), <em>Making und Schule</em>, <a href="https://creativecommons.org/licenses/by/4.0/deed.de">CC BY 4.0</a>
+</div>
+
+</body>
+</html>

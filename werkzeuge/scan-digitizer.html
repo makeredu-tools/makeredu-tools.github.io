@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scan-Digitizer · MakerEdu</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A1A1A'/%3E%3Cpath d='M8 23V9h3.5L16 16l4.5-7H24v14h-3v-9l-4.2 6.4h-1.6L11 14v9z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  /* ===== MakerEdu-Grundblock — in allen Werkzeugen wortgleich ===== */
+  --ink:#1A1A1A;
+  --ink-soft:#8A8680;
+  --ink-faint:#B5B2AC;
+  --paper:#FFFFFF;
+  --surface:#F5F4F1;
+  --line:#E2E0DC;
+  --line-lt:#EEEDE9;
+  --grid:#EDEBE6;
+  --grid-10:#DCD9D3;
+  --accent:#2E6E6B;
+  --accent-dark:#255957;
+  --accent-soft:#EAF1EF;
+  --bad:#DC2626;
+  --bad-soft:rgba(220,38,38,.10);
+  --warn:#D97706;
+  --warn-bg:#FFFBEB;
+  --warn-soft:rgba(217,119,6,.12);
+  --warn-ink:#92400E;
+  --radius:8px;
+  --radius-sm:5px;
+  --shadow:0 1px 4px rgba(0,0,0,.07);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
+html{height:100%}
+body{
+  height:100vh;height:100dvh;
+  font-family:'DM Sans',Inter,"Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.45;color:var(--ink);background:var(--surface);
+  font-variant-numeric:tabular-nums;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+button,input,select{font:inherit;font-variant-numeric:tabular-nums;color:inherit}
+
+/* ===== Kopfzeile — in allen Werkzeugen wortgleich ===== */
+.app-header{
+  flex:0 0 auto;background:#1A1A1A;color:#fff;padding:0;height:52px;
+  display:flex;align-items:center;z-index:200;
+}
+.app-header-inner{
+  max-width:1400px;width:100%;margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;gap:12px;height:52px;position:relative;
+}
+.app-header-link{
+  display:flex;align-items:center;gap:10px;text-decoration:none;
+  flex-shrink:0;opacity:1;transition:opacity .15s;
+}
+.app-header-link:hover{opacity:.75}
+.app-header-mark{
+  width:28px;height:28px;background:#FFF;border-radius:6px;display:grid;
+  place-items:center;color:#1A1A1A;font-weight:700;font-size:13px;flex-shrink:0;
+}
+.app-header-brand{color:#FFF;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.app-header-sep{color:rgba(255,255,255,.35);font-size:15px;margin:0 2px}
+.app-header h1{
+  margin:0;font-size:15px;font-weight:500;letter-spacing:-.2px;
+  color:rgba(255,255,255,.6);flex:1;
+}
+.header-badge{
+  font-size:10px;font-weight:500;background:rgba(255,255,255,.15);
+  padding:3px 9px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;
+}
+
+/* ===== Spalte und Abschnitte — wie im Aussenkontur-Werkzeug ===== */
+main{flex:1 1 auto;display:flex;min-height:0}
+aside{
+  flex:0 0 352px;background:var(--paper);border-right:1px solid var(--line);
+  overflow-y:auto;padding:16px 18px 40px;
+}
+details.sect{margin-bottom:14px;border-top:1px solid var(--line-lt);padding-top:12px}
+details.sect>summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:600;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;
+}
+details.sect>summary::-webkit-details-marker{display:none}
+details.sect>summary::after{
+  content:'';margin-left:auto;width:0;height:0;border-left:4px solid var(--ink-faint);
+  border-top:3.5px solid transparent;border-bottom:3.5px solid transparent;
+  transition:transform .15s;
+}
+details.sect[open]>summary::after{transform:rotate(90deg)}
+details.sect>summary:hover{color:var(--ink)}
+.step{
+  flex:0 0 auto;width:19px;height:19px;border-radius:4px;
+  background:var(--surface);color:var(--ink-soft);
+  font-size:10.5px;font-weight:600;display:grid;place-items:center;letter-spacing:0;
+}
+details.sect.done>summary .step{background:var(--accent);color:#fff}
+#s1{border-top:none;padding-top:0}   /* erster Abschnitt braucht keine Trennlinie */
+
+/* ===== Zeilen, Felder, Erklärungen — wortgleich ===== */
+.row{display:flex;align-items:center;gap:8px;margin-bottom:9px;position:relative}
+.row label{font-size:13px;color:var(--ink)}
+.row input,.row select{margin-left:auto}
+.row.stack{flex-wrap:wrap}
+.row.stack select,.row.stack input[type=range]{
+  flex:1 0 100%;margin-left:0;margin-top:6px;width:100%;
+}
+.hint{font-size:11.5px;color:var(--ink-faint);margin:-2px 0 9px}
+.sub{
+  font-size:11px;font-weight:600;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.6px;margin:12px 0 6px;
+}
+
+input[type=number],input[type=text]{
+  width:88px;padding:8px 11px;text-align:right;
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--surface);transition:border-color .15s,background .15s;
+}
+input[type=number]:focus,input[type=text]:focus{border-color:var(--accent);background:var(--paper)}
+input:focus-visible,select:focus-visible,button:focus-visible,canvas:focus-visible{
+  outline:2px solid var(--accent);outline-offset:1px;
+}
+input:disabled{opacity:.5}
+select{padding:8px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
+.grid2 label{
+  display:block;font-size:10px;font-weight:600;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;
+}
+.grid2 input{width:100%;padding:6px 8px;font-size:12px}
+
+.info{
+  width:16px;height:16px;flex:0 0 auto;padding:0;
+  border:1px solid var(--line);border-radius:50%;background:var(--paper);
+  color:var(--ink-faint);font-size:10px;font-weight:600;font-style:italic;
+  line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:help;
+}
+.info:hover,.info[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
+.tip{
+  position:absolute;top:calc(100% + 5px);left:0;right:0;z-index:30;display:none;
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-md);
+  padding:10px 12px;font-size:11.5px;line-height:1.45;color:var(--ink);
+}
+.tip.show{display:block}
+
+/* ===== Schaltflächen — wortgleich ===== */
+.btn{
+  padding:9px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--surface);cursor:pointer;font-size:13px;font-weight:500;
+  transition:border-color .15s,background .15s;
+}
+.btn:hover{border-color:var(--ink-soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+.btn.wide{width:100%;text-align:center;justify-content:center}
+.btn.tiny{padding:6px 12px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.mode.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
+
+/* ===== Zeichenfläche ===== */
+#stage{flex:1 1 auto;position:relative;background:var(--surface);min-width:0;padding:16px;display:flex}
+.canvas-wrap{
+  flex:1;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  position:relative;overflow:hidden;min-height:0;
+}
+canvas#view{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.hud{
+  position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.94);
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:7px 11px;
+  font-size:12.5px;color:var(--ink-soft);pointer-events:none;
+}
+.hud b{font-weight:600;color:var(--ink)}
+.hud .no-cal{color:var(--warn-ink)}
+.dropzone{
+  position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  color:var(--ink-faint);font-size:15px;padding:24px;
+}
+.dropzone{z-index:10}
+.dropzone.over{background:var(--accent-soft);color:var(--accent)}
+.dropzone.over::after{content:'Scan hier ablegen'}
+
+/* ===== Kurzanleitung — gleicher Baustein wie im Aussenkontur-Werkzeug ===== */
+#guide{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(440px,calc(100% - 40px));z-index:40;
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-md);padding:20px 22px;
+}
+#guide h2{
+  margin:0 0 12px;font-size:11px;font-weight:600;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.6px;
+}
+#guide ol{margin:0;padding-left:20px;font-size:13px;line-height:1.5}
+#guide ol li{margin-bottom:8px}
+#guide ol li::marker{color:var(--accent);font-weight:600}
+#guide b{font-weight:600}
+.guide-tips{
+  margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-lt);
+  font-size:11.5px;line-height:1.5;color:var(--ink-soft);
+}
+#guide-close{position:absolute;top:12px;right:12px}
+#help{font-weight:600;width:30px;padding:6px 0}
+.viewbtns{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:20}
+
+/* ===== Statuszeilen und Listen ===== */
+.status{font-size:11.5px;line-height:1.45;margin-top:9px;color:var(--ink-faint)}
+.status.ok{color:var(--accent)}
+.status.warn{color:var(--warn-ink)}
+.status.dim{color:var(--ink-faint)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-weight:600;color:var(--ink-soft);padding:4px;border-bottom:1px solid var(--line)}
+td{padding:4px;border-bottom:1px solid var(--line-lt)}
+td.num{text-align:right}
+td button{padding:1px 6px;font-size:12px;border:none;background:none;color:var(--ink-faint);cursor:pointer}
+td button:hover{color:var(--bad)}
+.scroll{max-height:150px;overflow-y:auto}
+.empty{font-size:11.5px;color:var(--ink-faint);padding:6px 2px}
+
+@media (max-width:900px){
+  main{flex-direction:column}
+  aside{flex:0 0 auto;width:100%;border-right:none;border-bottom:1px solid var(--line);max-height:46vh}
+  #stage{min-height:340px;padding:12px}
+  .app-header-inner{padding:0 14px}
+}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-header-inner">
+    <a href="https://makeredu-tools.github.io/" class="app-header-link">
+      <div class="app-header-mark">M</div>
+      <span class="app-header-brand">MakerEdu</span>
+    </a>
+    <span class="app-header-sep">›</span>
+    <h1>Scan-Digitizer</h1>
+    <span class="header-badge" id="scale-badge">kein Massstab</span>
+  </div>
+</div>
+
+<main>
+  <aside>
+
+    <details class="sect" id="s1" open>
+      <summary><span class="step">1</span> Scan laden</summary>
+      <button class="btn primary wide" id="pick">Scan öffnen</button>
+      <input type="file" id="file" accept="image/*" hidden>
+      <p class="hint" style="margin-top:9px">Flachbettscan mit 300 oder 600 dpi. Auch per Ablegen auf die Zeichenfläche.</p>
+    </details>
+
+    <details class="sect" id="s2">
+      <summary><span class="step">2</span> Massstab</summary>
+      <div class="row" data-info="Die Auflösung, mit der eingescannt wurde. Daraus ergibt sich, wie viele Millimeter ein Bildpunkt misst. Stimmt die Angabe nicht, stimmen alle Masse nicht.">
+        <label for="dpi">Auflösung (dpi)</label>
+        <input type="number" id="dpi" value="300" min="50" step="50">
+      </div>
+      <button class="btn wide" id="btn-dpi">Auflösung übernehmen</button>
+      <button class="btn wide mode" id="m-kalib" style="margin-top:7px">Zwei Punkte messen</button>
+      <div id="cal-status" class="status dim">Noch nicht kalibriert – Messwerte sind gesperrt.</div>
+      <p class="hint" style="margin-top:9px">Die Zwei-Punkt-Referenz ist der verlässlichere Weg. Gute Vorlage: 14 Abstände der Pinleiste = 35.56 mm.</p>
+    </details>
+
+    <details class="sect" id="s3">
+      <summary><span class="step">3</span> Ausrichten</summary>
+      <button class="btn wide mode" id="m-rot">Zwei Punkte waagrecht setzen</button>
+      <div class="row" style="margin-top:9px" data-info="Feinkorrektur der Drehung in Grad. Positive Werte drehen im Uhrzeigersinn, gleich wie in Word und XCS.">
+        <label for="rot">Drehung (°)</label>
+        <input type="number" id="rot" value="0" step="0.1">
+      </div>
+      <button class="btn tiny" id="btn-rot0">Auf 0° zurück</button>
+    </details>
+
+    <details class="sect" id="s4">
+      <summary><span class="step">4</span> Nullpunkt</summary>
+      <button class="btn wide mode" id="m-null">Nullpunkt klicken</button>
+      <div class="row" style="margin-top:7px">
+        <button class="btn tiny" id="btn-null-center" style="flex:1">Bildmitte</button>
+        <button class="btn tiny" id="btn-null-corner" style="flex:1">Bildecke</button>
+      </div>
+      <p class="hint">Alle Koordinaten zählen ab hier.</p>
+    </details>
+
+    <details class="sect" id="s5">
+      <summary><span class="step">5</span> Koordinaten ablesen</summary>
+      <div class="modes">
+        <button class="btn mode" id="m-punkt">Punkt x/y</button>
+        <button class="btn mode" id="m-strecke">Strecke</button>
+      </div>
+      <div id="meas-status" class="status dim">Klick setzt einen Punkt und schreibt x/y in die Liste.</div>
+      <div class="sub">Punkte</div>
+      <div class="scroll" id="list-p"></div>
+      <div class="sub">Strecken</div>
+      <div class="scroll" id="list-s"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn tiny" id="btn-csv" style="flex:1">CSV speichern</button>
+        <button class="btn tiny" id="btn-clear" style="flex:1">Alles löschen</button>
+      </div>
+      <p class="hint" style="margin-top:9px">Alle Werte in Millimeter ab Nullpunkt – zum Übertragen nach SketchUp.</p>
+    </details>
+
+    <details class="sect" id="s6">
+      <summary><span class="step">6</span> Darstellung</summary>
+      <label class="chk"><input type="checkbox" id="c-grid" checked> Millimeterraster</label>
+      <label class="chk"><input type="checkbox" id="c-axes" checked> Achsen und Beschriftung</label>
+      <label class="chk"><input type="checkbox" id="c-img" checked> Scan anzeigen</label>
+      <div class="row stack" style="margin-top:11px" data-info="Farbe des Rasters. Auf dunklen oder bunten Scans ist ein farbiges Raster besser zu unterscheiden.">
+        <label for="gridcol">Rasterfarbe</label>
+        <select id="gridcol">
+          <option value="grau">Grau</option>
+          <option value="rot">Rot</option>
+          <option value="blau">Blau</option>
+          <option value="gruen">Grün</option>
+          <option value="schwarz">Schwarz</option>
+        </select>
+      </div>
+      <div class="row stack" data-info="Blendet die Papierfläche aus, damit nur die Zeichnung stehen bleibt. „helle Fläche“ für dunkle Striche auf weißem Papier, „dunkle Fläche“ umgekehrt.">
+        <label for="bgmode">Hintergrund entfernen</label>
+        <select id="bgmode">
+          <option value="none">aus</option>
+          <option value="hell">helle Fläche</option>
+          <option value="dunkel">dunkle Fläche</option>
+        </select>
+      </div>
+      <div class="row stack" data-info="Ab welchem Helligkeitswert eine Stelle als Hintergrund gilt. Unter der Zeile steht, wie viel Prozent der Fläche gerade entfernt werden.">
+        <label for="bgthr">Schwelle <span id="bgthr-val">235</span></label>
+        <input type="range" id="bgthr" min="0" max="255" value="235" disabled>
+      </div>
+      <div id="bg-status" class="status dim">Scan wird unverändert angezeigt.</div>
+      <button class="btn wide" id="btn-fit" style="margin-top:11px">Ansicht einpassen</button>
+    </details>
+
+    <details class="sect" id="s7">
+      <summary><span class="step">7</span> Drucken 1:1</summary>
+      <button class="btn wide mode" id="m-crop">Ausschnitt aufziehen</button>
+      <div class="grid2" style="margin-top:9px">
+        <div><label for="cx">x links (mm)</label><input type="number" id="cx" step="1" disabled></div>
+        <div><label for="cy">y unten (mm)</label><input type="number" id="cy" step="1" disabled></div>
+        <div><label for="cw">Breite (mm)</label><input type="number" id="cw" step="1" min="1" disabled></div>
+        <div><label for="chh">Höhe (mm)</label><input type="number" id="chh" step="1" min="1" disabled></div>
+      </div>
+      <button class="btn tiny" id="btn-crop-clear">Ausschnitt aufheben</button>
+      <div id="crop-status" class="status dim">Kein Ausschnitt – gedruckt wird der ganze Scan.</div>
+      <div class="row stack" style="margin-top:11px" data-info="Blattformat des Druckers. Passt der Ausschnitt nicht darauf, wird er beschnitten – die Statuszeile sagt es vorher.">
+        <label for="fmt">Format</label>
+        <select id="fmt">
+          <option value="a4p">A4 hoch</option>
+          <option value="a4l">A4 quer</option>
+          <option value="a3p">A3 hoch</option>
+          <option value="a3l">A3 quer</option>
+        </select>
+      </div>
+      <div class="row" data-info="Gleicht aus, dass Drucker nicht exakt massgetreu ausgeben. 100 % heißt unverändert. Nach dem ersten Druck den Kontrollwinkel nachmessen und hier korrigieren.">
+        <label for="corr">Korrektur (%)</label>
+        <input type="number" id="corr" value="100" step="0.1" min="90" max="110">
+      </div>
+      <div class="row" data-info="Unbedruckter Streifen rund ums Blatt. Darin liegt auch der 100-mm-Kontrollwinkel.">
+        <label for="rand">Blattrand (mm)</label>
+        <input type="number" id="rand" value="12" step="1" min="0" max="40">
+      </div>
+      <button class="btn primary wide" id="btn-pdf" style="margin-top:7px">PDF erzeugen</button>
+      <p class="hint" style="margin-top:9px">Im Druckdialog «Tatsächliche Grösse» wählen. Danach den 100-mm-Winkel auf dem Blatt nachmessen: bei 99.4 mm hier 100.6 eintragen und neu erzeugen.</p>
+    </details>
+
+  </aside>
+
+  <div id="stage">
+    <div class="canvas-wrap" id="wrap">
+      <canvas id="view" tabindex="0"></canvas>
+      <div class="dropzone" id="drop"></div>
+      <div id="guide">
+        <button class="btn tiny" id="guide-close" hidden>Schliessen</button>
+        <h2>So geht's</h2>
+        <ol>
+          <li><b>Scan laden</b> — hier ablegen oder links öffnen. Flachbettscan mit 300 oder 600 dpi.</li>
+          <li><b>Massstab setzen</b> — dpi eintragen oder zwei Punkte mit bekanntem Abstand messen. Ohne Massstab bleibt das Messen gesperrt.</li>
+          <li><b>Nullpunkt setzen</b> — ab dieser Stelle zählen alle Koordinaten.</li>
+          <li><b>Ablesen oder drucken</b> — Punkte und Strecken in Millimeter, oder den Ausschnitt 1:1 als PDF.</li>
+        </ol>
+        <p class="guide-tips">
+          Ziehen verschiebt · Mausrad zoomt · <b>ⓘ</b> erklärt jedes Feld · Escape schliesst Erklärungen
+        </p>
+      </div>
+      <div class="viewbtns">
+        <button class="btn tiny" id="help" title="Kurzanleitung">?</button>
+      </div>
+      <div class="hud" id="hud"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+
+const S = {
+  img:null, iw:0, ih:0,
+  mmPerPx:null,        // Millimeter pro Bildpixel
+  calSource:null,      // 'dpi' | 'punkte'
+  calDpiEntered:null,
+  theta:0,             // Bildrotation in rad (positiv = im Uhrzeigersinn auf dem Schirm)
+  origin:{x:0,y:0},    // Nullpunkt in q-Koordinaten (Pixel, Ursprung = Bildmitte)
+  items:[],            // {type:'p'|'s', a:{x,y}, b?:{x,y}}
+  pending:[],
+  mode:'punkt',
+  view:{zoom:1, ox:0, oy:0},
+  showGrid:true, showAxes:true, showImg:true,
+  gridColor:'grau',
+  src:null, bgMode:'none', bgThr:235,
+  crop:null,           // {x0,y0,x1,y1} in Weltmillimeter
+  cropPreview:null,
+  cursor:null
+};
+
+const cv = document.getElementById('view');
+const ctx = cv.getContext('2d');
+const wrap = document.getElementById('wrap');
+const hud = document.getElementById('hud');
+const drop = document.getElementById('drop');
+
+/* ---------- Koordinaten ----------
+   p  = Bildpixel (0..iw, 0..ih)
+   q  = gedrehte Pixel, Ursprung Bildmitte, y nach unten
+   mm = Welt in Millimeter, Ursprung S.origin, y nach oben
+   s  = Bildschirm                                            */
+
+function pToQ(p){
+  const cx=S.iw/2, cy=S.ih/2, dx=p.x-cx, dy=p.y-cy;
+  const c=Math.cos(S.theta), si=Math.sin(S.theta);
+  return {x:dx*c - dy*si, y:dx*si + dy*c};
+}
+function qToMm(q){
+  if(S.mmPerPx==null) return null;
+  return {x:(q.x-S.origin.x)*S.mmPerPx, y:-(q.y-S.origin.y)*S.mmPerPx};
+}
+function mmToQ(m){
+  return {x:m.x/S.mmPerPx + S.origin.x, y:-m.y/S.mmPerPx + S.origin.y};
+}
+function qToS(q){ return {x:q.x*S.view.zoom + S.view.ox, y:q.y*S.view.zoom + S.view.oy}; }
+function sToQ(s){ return {x:(s.x-S.view.ox)/S.view.zoom, y:(s.y-S.view.oy)/S.view.zoom}; }
+function rot(q,a){ const c=Math.cos(a), si=Math.sin(a); return {x:q.x*c-q.y*si, y:q.x*si+q.y*c}; }
+
+function imgCornersQ(){
+  const c=[{x:0,y:0},{x:S.iw,y:0},{x:S.iw,y:S.ih},{x:0,y:S.ih}];
+  return c.map(pToQ);
+}
+
+/* ---------- Zeichnen ---------- */
+
+function resize(){
+  const r = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width*dpr);
+  cv.height = Math.round(r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  draw();
+}
+
+function draw(){
+  const w = cv.width/(window.devicePixelRatio||1);
+  const h = cv.height/(window.devicePixelRatio||1);
+  ctx.save();
+  ctx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+
+  if(S.img && S.showImg){
+    ctx.save();
+    ctx.translate(S.view.ox, S.view.oy);
+    ctx.scale(S.view.zoom, S.view.zoom);
+    ctx.rotate(S.theta);
+    ctx.imageSmoothingQuality='high';
+    ctx.drawImage(S.src||S.img, -S.iw/2, -S.ih/2, S.iw, S.ih);
+    ctx.restore();
+  }
+
+  if(S.mmPerPx!=null && S.showGrid) drawGrid(w,h);
+  if(S.mmPerPx!=null && S.showAxes) drawAxes(w,h);
+  drawItems();
+  drawCrop(w,h);
+  drawCrosshair(w,h);
+  drawPending();
+  ctx.restore();
+  updateHud();
+}
+
+function visibleMmBox(w,h){
+  const corners=[{x:0,y:0},{x:w,y:0},{x:w,y:h},{x:0,y:h}].map(s=>qToMm(sToQ(s)));
+  return {
+    x0:Math.min(...corners.map(c=>c.x)), x1:Math.max(...corners.map(c=>c.x)),
+    y0:Math.min(...corners.map(c=>c.y)), y1:Math.max(...corners.map(c=>c.y))
+  };
+}
+
+const GRIDS = {grau:'#6F6B64', rot:'#C0392B', blau:'#2C5F8A', gruen:'#3F7A46', schwarz:'#1A1A1A'};
+function gridRgba(a){
+  const h=GRIDS[S.gridColor]||GRIDS.grau;
+  const r=parseInt(h.substr(1,2),16), g=parseInt(h.substr(3,2),16), b=parseInt(h.substr(5,2),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+
+function drawGrid(w,h){
+  const pxPerMm = S.view.zoom / S.mmPerPx;
+  const b = visibleMmBox(w,h);
+  const steps = [];
+  if(pxPerMm >= 5) steps.push({mm:1, col:gridRgba(.20), lw:1});
+  if(pxPerMm >= 1.4) steps.push({mm:5, col:gridRgba(.38), lw:1});
+  steps.push({mm:10, col:gridRgba(.72), lw:1});
+  if(pxPerMm < 0.35) steps.push({mm:50, col:gridRgba(.9), lw:1});
+
+  for(const st of steps){
+    ctx.strokeStyle=st.col; ctx.lineWidth=st.lw; ctx.beginPath();
+    const i0=Math.floor(b.x0/st.mm), i1=Math.ceil(b.x1/st.mm);
+    if(i1-i0 < 4000){
+      for(let i=i0;i<=i1;i++){
+        const a=qToS(mmToQ({x:i*st.mm,y:b.y0})), c=qToS(mmToQ({x:i*st.mm,y:b.y1}));
+        ctx.moveTo(a.x+.5,a.y); ctx.lineTo(c.x+.5,c.y);
+      }
+    }
+    const j0=Math.floor(b.y0/st.mm), j1=Math.ceil(b.y1/st.mm);
+    if(j1-j0 < 4000){
+      for(let j=j0;j<=j1;j++){
+        const a=qToS(mmToQ({x:b.x0,y:j*st.mm})), c=qToS(mmToQ({x:b.x1,y:j*st.mm}));
+        ctx.moveTo(a.x,a.y+.5); ctx.lineTo(c.x,c.y+.5);
+      }
+    }
+    ctx.stroke();
+  }
+}
+
+function printRegion(){
+  if(S.mmPerPx==null || !S.img) return null;
+  if(S.crop) return {x0:S.crop.x0, x1:S.crop.x1, y0:S.crop.y0, y1:S.crop.y1};
+  const c=imgCornersQ().map(qToMm);
+  return {x0:Math.min(...c.map(p=>p.x)), x1:Math.max(...c.map(p=>p.x)),
+          y0:Math.min(...c.map(p=>p.y)), y1:Math.max(...c.map(p=>p.y))};
+}
+function labelStep(pxPerMm){
+  let step=10;
+  while(step*pxPerMm < 42) step *= (step===10?5:2);
+  return step;
+}
+const AX = {x:'#D42A2A', y:'#2E8B2E'};   // wie in SketchUp: x rot, y grün
+
+function pill(t,x,y,align,baseline,col){
+  ctx.font='11px "DM Sans",sans-serif';
+  ctx.textAlign=align; ctx.textBaseline=baseline;
+  ctx.lineJoin='round'; ctx.miterLimit=2;
+  ctx.lineWidth=3.5;
+  ctx.strokeStyle='rgba(255,255,255,.9)';
+  ctx.strokeText(t,x,y);
+  ctx.fillStyle=col||'#2E6E6B';
+  ctx.fillText(t,x,y);
+}
+
+function drawAxes(w,h){
+  const b = visibleMmBox(w,h);
+  ctx.lineWidth=1.5;
+  ctx.strokeStyle=AX.x;
+  ctx.beginPath();
+  let a=qToS(mmToQ({x:b.x0,y:0})), c=qToS(mmToQ({x:b.x1,y:0}));
+  ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y);
+  ctx.stroke();
+  ctx.strokeStyle=AX.y;
+  ctx.beginPath();
+  a=qToS(mmToQ({x:0,y:b.y0})); c=qToS(mmToQ({x:0,y:b.y1}));
+  ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y);
+  ctx.stroke();
+  const o=qToS(mmToQ({x:0,y:0}));
+  ctx.fillStyle='#1A1A1A';
+  ctx.beginPath(); ctx.arc(o.x,o.y,3.5,0,6.284); ctx.fill();
+
+  const step=labelStep(S.view.zoom/S.mmPerPx);
+  const gap=5, lh=14;
+  ctx.font='11px "DM Sans",sans-serif';
+  let maxw=0;
+  for(let j=Math.ceil(b.y0/step); j<=Math.floor(b.y1/step); j++){
+    if(j===0) continue;
+    maxw=Math.max(maxw, ctx.measureText(String(j*step)).width);
+  }
+  // Beschriftung liegt an der Achse; läuft die Achse aus dem Bild, wird sie am Rand gehalten
+  const rowY=Math.min(Math.max(o.y, 2), h-lh-2);
+  const colX=Math.min(Math.max(o.x, maxw+gap+2), w-2);
+  for(let i=Math.ceil(b.x0/step); i<=Math.floor(b.x1/step); i++){
+    if(i===0) continue;
+    const sx=qToS(mmToQ({x:i*step,y:0})).x;
+    pill(String(i*step), sx, rowY+gap, 'center','top', AX.x);
+  }
+  for(let j=Math.ceil(b.y0/step); j<=Math.floor(b.y1/step); j++){
+    if(j===0) continue;
+    const sy=qToS(mmToQ({x:0,y:j*step})).y;
+    pill(String(j*step), colX-gap, sy, 'right','middle', AX.y);
+  }
+}
+
+function itemLabels(){
+  let p=0, s=0;
+  return S.items.map(it => it.type==='p' ? 'P'+(++p) : 'S'+(++s));
+}
+
+function drawItems(){
+  const lab=itemLabels();
+  ctx.font='11.5px "DM Sans",sans-serif';
+  S.items.forEach((it,idx)=>{
+    if(it.type==='p'){
+      const s=qToS(it.a);
+      ctx.strokeStyle='#A8552E'; ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.moveTo(s.x-7,s.y); ctx.lineTo(s.x+7,s.y);
+      ctx.moveTo(s.x,s.y-7); ctx.lineTo(s.x,s.y+7);
+      ctx.stroke();
+      ctx.fillStyle='#A8552E'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+      ctx.fillText(lab[idx], s.x+9, s.y-4);
+    } else {
+      const a=qToS(it.a), b=qToS(it.b);
+      ctx.strokeStyle='#A8552E'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      dot(a); dot(b);
+      const mm=segLen(it);
+      ctx.fillStyle='#A8552E'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillText(mm!=null ? lab[idx]+'  '+mm.toFixed(2)+' mm' : '', (a.x+b.x)/2, (a.y+b.y)/2-5);
+    }
+  });
+}
+function dot(s){ ctx.fillStyle='#A8552E'; ctx.beginPath(); ctx.arc(s.x,s.y,3,0,6.284); ctx.fill(); }
+
+function drawCrop(w,h){
+  const r = S.cropPreview || S.crop;
+  if(!r || S.mmPerPx==null) return;
+  const a=qToS(mmToQ({x:r.x0,y:r.y1}));   // oben links
+  const b=qToS(mmToQ({x:r.x1,y:r.y0}));   // unten rechts
+  const x=Math.min(a.x,b.x), y=Math.min(a.y,b.y);
+  const rw=Math.abs(b.x-a.x), rh=Math.abs(b.y-a.y);
+
+  ctx.fillStyle='rgba(26,26,26,.30)';
+  ctx.fillRect(0,0,w,y);
+  ctx.fillRect(0,y+rh,w,h-y-rh);
+  ctx.fillRect(0,y,x,rh);
+  ctx.fillRect(x+rw,y,w-x-rw,rh);
+
+  ctx.strokeStyle='#2E6E6B'; ctx.lineWidth=1.5;
+  ctx.strokeRect(x+.5,y+.5,rw,rh);
+  const hs=5;
+  ctx.fillStyle='#2E6E6B';
+  [[x,y],[x+rw,y],[x,y+rh],[x+rw,y+rh]].forEach(p=>{
+    ctx.fillRect(p[0]-hs/2, p[1]-hs/2, hs, hs);
+  });
+
+  const lbl=(r.x1-r.x0).toFixed(1)+' × '+(r.y1-r.y0).toFixed(1)+' mm';
+  ctx.font='12px "DM Sans",sans-serif'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+  const tw=ctx.measureText(lbl).width;
+  ctx.fillStyle='#2E6E6B';
+  ctx.fillRect(x, y-19, tw+12, 18);
+  ctx.fillStyle='#fff';
+  ctx.fillText(lbl, x+6, y-4);
+}
+
+function drawCrosshair(w,h){
+  if(S.mode!=='nullp' || !S.cursor || !S.img) return;
+  const x=Math.round(S.cursor.x)+.5, y=Math.round(S.cursor.y)+.5;
+  ctx.save();
+  ctx.strokeStyle='#1B6ACB'; ctx.lineWidth=1;
+  ctx.setLineDash([6,4]);
+  ctx.beginPath();
+  ctx.moveTo(0,y); ctx.lineTo(w,y);
+  ctx.moveTo(x,0); ctx.lineTo(x,h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle='#1B6ACB'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(x,y,4,0,6.284); ctx.stroke();
+  ctx.restore();
+}
+
+function drawPending(){
+  if(!S.pending.length) return;
+  ctx.strokeStyle='#2E6E6B'; ctx.lineWidth=1.5;
+  S.pending.forEach(q=>{
+    const s=qToS(q);
+    ctx.beginPath(); ctx.arc(s.x,s.y,4,0,6.284); ctx.stroke();
+  });
+  if(S.pending.length===1 && S.cursor){
+    const a=qToS(S.pending[0]);
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(S.cursor.x,S.cursor.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function segLen(it){
+  if(S.mmPerPx==null) return null;
+  const dx=(it.b.x-it.a.x)*S.mmPerPx, dy=(it.b.y-it.a.y)*S.mmPerPx;
+  return Math.hypot(dx,dy);
+}
+
+function updateHud(){
+  if(!S.img){ hud.innerHTML=''; return; }
+  let t='';
+  if(S.mmPerPx==null){
+    t='<span class="no-cal">kein Massstab gesetzt</span>';
+  } else if(S.cursor){
+    const m=qToMm(sToQ(S.cursor));
+    t='x '+m.x.toFixed(2)+' mm&nbsp;&nbsp;y '+m.y.toFixed(2)+' mm';
+  } else {
+    t='Massstab '+(1/S.mmPerPx).toFixed(2)+' px/mm';
+  }
+  hud.innerHTML = t;
+}
+
+/* ---------- Bild laden ---------- */
+
+function loadFile(f){
+  if(!f) return;
+  const url=URL.createObjectURL(f);
+  const im=new Image();
+  im.onload=()=>{
+    S.img=im; S.iw=im.naturalWidth; S.ih=im.naturalHeight;
+    S.theta=0; S.items=[]; S.pending=[]; S.crop=null; S.cropPreview=null;
+    S.origin={x:-S.iw/2, y:S.ih/2};   // Bildecke unten links
+    applyDpi(parseFloat(document.getElementById('dpi').value), true);
+    buildSource();
+    drop.style.display='none';
+    if(!guideOpen) document.getElementById('guide').hidden=true;
+    fit(); renderList(); calStatus(); cropUI(); markDone(1);
+  };
+  im.onerror=()=>{ alert('Bild konnte nicht gelesen werden.'); };
+  im.src=url;
+}
+
+document.getElementById('file').addEventListener('change', e=>loadFile(e.target.files[0]));
+['dragenter','dragover'].forEach(ev=>wrap.addEventListener(ev,e=>{
+  e.preventDefault(); drop.style.display='grid'; drop.classList.add('over');
+}));
+['dragleave','drop'].forEach(ev=>wrap.addEventListener(ev,e=>{
+  e.preventDefault(); drop.classList.remove('over');
+  if(ev==='dragleave' && S.img) drop.style.display='none';
+}));
+wrap.addEventListener('drop', e=>{
+  e.preventDefault();
+  const f=e.dataTransfer.files && e.dataTransfer.files[0];
+  if(f) loadFile(f); else if(S.img) drop.style.display='none';
+});
+
+function fit(){
+  if(!S.img) return;
+  const r=wrap.getBoundingClientRect();
+  const q=imgCornersQ();
+  const x0=Math.min(...q.map(p=>p.x)), x1=Math.max(...q.map(p=>p.x));
+  const y0=Math.min(...q.map(p=>p.y)), y1=Math.max(...q.map(p=>p.y));
+  const z=Math.min((r.width-40)/(x1-x0), (r.height-40)/(y1-y0));
+  S.view.zoom=z;
+  S.view.ox=r.width/2 - ((x0+x1)/2)*z;
+  S.view.oy=r.height/2 - ((y0+y1)/2)*z;
+  draw();
+}
+document.getElementById('btn-fit').onclick=fit;
+
+/* ---------- Kalibrierung ---------- */
+
+function applyDpi(dpi, silent){
+  if(!(dpi>0)) return;
+  S.mmPerPx = 25.4/dpi;
+  S.calDpiEntered = dpi;
+  if(!silent) S.calSource='dpi';
+  else if(!S.calSource) S.calSource='dpi';
+  draw(); renderList(); calStatus();
+}
+document.getElementById('btn-dpi').onclick=()=>{
+  applyDpi(parseFloat(document.getElementById('dpi').value), false);
+  if(S.img) markDone(2);
+};
+
+function calStatus(){
+  const el=document.getElementById('cal-status');
+  const badge=document.getElementById('scale-badge');
+  if(S.mmPerPx==null){
+    el.className='status dim';
+    el.textContent='Noch nicht kalibriert – Messwerte sind gesperrt.';
+    badge.textContent='kein Massstab';
+    return;
+  }
+  badge.textContent=(25.4/S.mmPerPx).toFixed(1)+' dpi';
+  const dpi = 25.4/S.mmPerPx;
+  if(S.calSource==='punkte'){
+    const entered = parseFloat(document.getElementById('dpi').value);
+    let extra='';
+    if(entered>0){
+      const dev = (dpi/entered-1)*100;
+      if(Math.abs(dev)<0.3) extra=' Deckt sich mit der dpi-Angabe (' + dev.toFixed(2) + ' %).';
+      else extra=' Weicht '+dev.toFixed(2)+' % von der dpi-Angabe ab – Bild wurde vermutlich skaliert oder beschnitten.';
+    }
+    el.className = 'status ' + (Math.abs(dpi/(parseFloat(document.getElementById('dpi').value)||dpi)-1)*100 < 0.3 ? 'ok':'warn');
+    el.textContent='Über zwei Punkte kalibriert: '+dpi.toFixed(1)+' dpi.'+extra;
+  } else {
+    el.className='status ok';
+    el.textContent='Aus dpi-Angabe: '+ (25.4/dpi).toFixed(5) +' mm pro Pixel. Mit zwei Punkten gegenprüfen.';
+  }
+}
+
+/* ---------- Modi ---------- */
+
+const modeBtns = {
+  punkt:document.getElementById('m-punkt'),
+  strecke:document.getElementById('m-strecke'),
+  kalib:document.getElementById('m-kalib'),
+  rot:document.getElementById('m-rot'),
+  nullp:document.getElementById('m-null'),
+  crop:document.getElementById('m-crop')
+};
+const modeText = {
+  punkt:'Klick setzt einen Punkt und schreibt x/y in die Liste.',
+  strecke:'Zwei Klicks messen den Abstand zwischen zwei Stellen.',
+  kalib:'Zwei Punkte bekannter Distanz anklicken.',
+  rot:'Zwei Punkte anklicken, die waagrecht liegen sollen.',
+  nullp:'Klick setzt den Nullpunkt.',
+  crop:'Rahmen aufziehen. Einzelner Klick hebt den Ausschnitt auf.'
+};
+function setMode(m){
+  S.mode=m; S.pending=[];
+  Object.keys(modeBtns).forEach(k=>modeBtns[k].classList.toggle('active', k===m));
+  document.getElementById('meas-status').textContent = modeText[m];
+  document.getElementById('meas-status').className='status dim';
+  draw();
+}
+Object.keys(modeBtns).forEach(k=>{ modeBtns[k].onclick=()=>setMode(k); });
+setMode('punkt');
+
+/* ---------- Maus ---------- */
+
+let drag=null;
+cv.addEventListener('mousedown', e=>{
+  const r=cv.getBoundingClientRect();
+  const sx=e.clientX-r.left, sy=e.clientY-r.top;
+  drag={x0:sx, y0:sy, ox:S.view.ox, oy:S.view.oy, moved:false,
+        crop:(S.mode==='crop' && S.mmPerPx!=null)};
+  if(drag.crop) drag.mm0=qToMm(sToQ({x:sx,y:sy}));
+});
+cv.addEventListener('mousemove', e=>{
+  const r=cv.getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  S.cursor={x,y};
+  if(drag){
+    const dx=x-drag.x0, dy=y-drag.y0;
+    if(Math.abs(dx)>3||Math.abs(dy)>3) drag.moved=true;
+    if(drag.moved && drag.crop){
+      const m=qToMm(sToQ({x,y}));
+      S.cropPreview={
+        x0:Math.min(drag.mm0.x,m.x), x1:Math.max(drag.mm0.x,m.x),
+        y0:Math.min(drag.mm0.y,m.y), y1:Math.max(drag.mm0.y,m.y)
+      };
+    } else if(drag.moved){ S.view.ox=drag.ox+dx; S.view.oy=drag.oy+dy; }
+  }
+  draw();
+});
+window.addEventListener('mouseup', e=>{
+  if(drag && drag.crop && drag.moved && S.cropPreview){
+    if(S.cropPreview.x1-S.cropPreview.x0 > 2 && S.cropPreview.y1-S.cropPreview.y0 > 2){
+      S.crop=S.cropPreview;
+    }
+    S.cropPreview=null; cropUI(); draw();
+  } else if(drag && !drag.moved && S.img){
+    const r=cv.getBoundingClientRect();
+    handleClick({x:e.clientX-r.left, y:e.clientY-r.top});
+  }
+  drag=null;
+});
+cv.addEventListener('mouseleave', ()=>{ S.cursor=null; draw(); });
+cv.addEventListener('wheel', e=>{
+  if(!S.img) return;
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const q=sToQ({x:mx,y:my});
+  const f=Math.exp(-e.deltaY*0.0014);
+  S.view.zoom=Math.max(0.02, Math.min(200, S.view.zoom*f));
+  S.view.ox=mx-q.x*S.view.zoom;
+  S.view.oy=my-q.y*S.view.zoom;
+  draw();
+}, {passive:false});
+
+function handleClick(s){
+  const q=sToQ(s);
+  if(S.mode==='crop'){ S.crop=null; cropUI(); draw(); return; }
+  if(S.mode==='nullp'){
+    S.origin={x:q.x,y:q.y}; draw(); renderList(); markDone(4); return;
+  }
+  if(S.mode==='punkt'){
+    if(S.mmPerPx==null){ needCal(); return; }
+    S.items.push({type:'p', a:q}); renderList(); draw(); return;
+  }
+  S.pending.push(q);
+  if(S.pending.length<2){ draw(); return; }
+  const [a,b]=S.pending; S.pending=[];
+
+  if(S.mode==='strecke'){
+    if(S.mmPerPx==null){ needCal(); draw(); return; }
+    S.items.push({type:'s', a:a, b:b}); renderList(); draw(); return;
+  }
+  if(S.mode==='kalib'){
+    const px=Math.hypot(b.x-a.x, b.y-a.y);
+    if(px<5){ msg('Punkte liegen zu nahe beieinander.', 'warn'); draw(); return; }
+    const inp=prompt('Tatsächlicher Abstand der beiden Punkte in Millimeter:', '35.56');
+    if(inp!==null){
+      const mm=parseFloat(String(inp).replace(',','.'));
+      if(mm>0){
+        S.mmPerPx=mm/px; S.calSource='punkte';
+        calStatus(); renderList(); markDone(2);
+      } else msg('Ungültiger Wert.','warn');
+    }
+    draw(); return;
+  }
+  if(S.mode==='rot'){
+    let ang=Math.atan2(b.y-a.y, b.x-a.x);
+    if(ang>Math.PI/2) ang-=Math.PI;
+    if(ang<-Math.PI/2) ang+=Math.PI;
+    rotateBy(-ang);
+    document.getElementById('rot').value=(S.theta*180/Math.PI).toFixed(2);
+    draw(); markDone(3); return;
+  }
+}
+function needCal(){ msg('Zuerst den Massstab setzen (Schritt 2).','warn'); }
+function msg(t,cls){
+  const el=document.getElementById('meas-status');
+  el.textContent=t; el.className='status '+(cls||'dim');
+}
+
+function rotateBy(d){
+  S.theta += d;
+  S.origin = rot(S.origin, d);
+  S.items.forEach(it=>{ it.a=rot(it.a,d); if(it.b) it.b=rot(it.b,d); });
+}
+document.getElementById('rot').addEventListener('change', e=>{
+  const target=parseFloat(e.target.value)*Math.PI/180;
+  if(isNaN(target)) return;
+  rotateBy(target - S.theta); draw(); renderList(); markDone(3);
+});
+document.getElementById('btn-rot0').onclick=()=>{
+  rotateBy(-S.theta); document.getElementById('rot').value='0'; draw(); renderList();
+};
+document.getElementById('btn-null-center').onclick=()=>{ S.origin={x:0,y:0}; draw(); renderList(); markDone(4); };
+document.getElementById('btn-null-corner').onclick=()=>{
+  const c=imgCornersQ();
+  S.origin={x:Math.min(...c.map(p=>p.x)), y:Math.max(...c.map(p=>p.y))};
+  draw(); renderList(); markDone(4);
+};
+
+/* ---------- Liste ---------- */
+
+function renderList(){
+  const lab=itemLabels();
+  const elP=document.getElementById('list-p');
+  const elS=document.getElementById('list-s');
+
+  const pts=[]; const segs=[];
+  S.items.forEach((it,i)=>{ (it.type==='p'?pts:segs).push({it, i, l:lab[i]}); });
+
+  if(!pts.length){
+    elP.innerHTML='<div class="empty">Noch keine Punkte gesetzt.</div>';
+  } else {
+    let h='<table><tr><th></th><th style="text-align:right">x (mm)</th><th style="text-align:right">y (mm)</th><th></th></tr>';
+    pts.forEach(r=>{
+      const m=qToMm(r.it.a);
+      h+='<tr><td>'+r.l+'</td><td class="num">'+m.x.toFixed(2)+'</td><td class="num">'+m.y.toFixed(2)+
+         '</td><td class="num"><button data-i="'+r.i+'">×</button></td></tr>';
+    });
+    elP.innerHTML=h+'</table>';
+  }
+
+  if(!segs.length){
+    elS.innerHTML='<div class="empty">Noch keine Strecken gemessen.</div>';
+  } else {
+    let h='<table><tr><th></th><th style="text-align:right">Länge (mm)</th><th>von → nach</th><th></th></tr>';
+    segs.forEach(r=>{
+      const a=qToMm(r.it.a), b=qToMm(r.it.b);
+      const von=a.x.toFixed(1)+'/'+a.y.toFixed(1)+' → '+b.x.toFixed(1)+'/'+b.y.toFixed(1);
+      h+='<tr><td>'+r.l+'</td><td class="num">'+segLen(r.it).toFixed(2)+'</td>'+
+         '<td style="color:var(--muted);font-size:11.5px">'+von+'</td>'+
+         '<td class="num"><button data-i="'+r.i+'">×</button></td></tr>';
+    });
+    elS.innerHTML=h+'</table>';
+  }
+
+  [elP,elS].forEach(el=>{
+    el.querySelectorAll('button').forEach(b=>{
+      b.onclick=()=>{ S.items.splice(parseInt(b.dataset.i),1); renderList(); draw(); };
+    });
+  });
+}
+document.getElementById('btn-clear').onclick=()=>{ S.items=[]; S.pending=[]; renderList(); draw(); };
+document.getElementById('btn-csv').onclick=()=>{
+  if(!S.items.length){ msg('Nichts zu speichern.','warn'); return; }
+  const lab=itemLabels();
+  let csv='Bezeichnung;Art;x_mm;y_mm;Laenge_mm\n';
+  S.items.forEach((it,i)=>{
+    if(it.type==='p'){
+      const m=qToMm(it.a);
+      csv+=lab[i]+';Punkt;'+m.x.toFixed(3)+';'+m.y.toFixed(3)+';\n';
+    } else {
+      const a=qToMm(it.a), b=qToMm(it.b);
+      csv+=lab[i]+';Strecke Start;'+a.x.toFixed(3)+';'+a.y.toFixed(3)+';'+segLen(it).toFixed(3)+'\n';
+      csv+=lab[i]+';Strecke Ende;'+b.x.toFixed(3)+';'+b.y.toFixed(3)+';\n';
+    }
+  });
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='koordinaten.csv'; a.click();
+};
+
+/* ---------- Hintergrund freistellen ---------- */
+
+function buildSource(){
+  const st=document.getElementById('bg-status');
+  if(!S.img){ S.src=null; return; }
+  if(S.bgMode==='none'){
+    S.src=S.img;
+    st.className='status dim';
+    st.textContent='Scan wird unverändert angezeigt.';
+    return;
+  }
+  const c=document.createElement('canvas');
+  c.width=S.iw; c.height=S.ih;
+  const g=c.getContext('2d', {willReadFrequently:false});
+  g.drawImage(S.img,0,0);
+  let d;
+  try{ d=g.getImageData(0,0,S.iw,S.ih); }
+  catch(e){
+    S.src=S.img;
+    st.className='status warn';
+    st.textContent='Bilddaten nicht lesbar – Freistellen nicht möglich.';
+    return;
+  }
+  const px=d.data, thr=S.bgThr, soft=14;
+  const hell=(S.bgMode==='hell');
+  let gone=0;
+  for(let i=0;i<px.length;i+=4){
+    const v = hell ? Math.min(px[i],px[i+1],px[i+2]) : Math.max(px[i],px[i+1],px[i+2]);
+    let a;
+    if(hell){
+      a = v<=thr-soft ? 255 : (v>=thr+soft ? 0 : Math.round(255*(thr+soft-v)/(2*soft)));
+    } else {
+      a = v>=thr+soft ? 255 : (v<=thr-soft ? 0 : Math.round(255*(v-thr+soft)/(2*soft)));
+    }
+    if(a<255){ px[i+3]=Math.min(px[i+3],a); if(a===0) gone++; }
+  }
+  g.putImageData(d,0,0);
+  S.src=c;
+  const pct=100*gone/(S.iw*S.ih);
+  st.className = (pct<2||pct>95) ? 'status warn' : 'status ok';
+  st.textContent = pct.toFixed(0)+' % der Fläche entfernt.' +
+    (pct<2 ? ' Schwelle verschieben – es wird kaum etwas erfasst.' :
+     pct>95 ? ' Schwelle verschieben – es wird zu viel erfasst.' : '');
+}
+
+let bgTimer=null;
+document.getElementById('bgmode').addEventListener('change', e=>{
+  S.bgMode=e.target.value;
+  const sl=document.getElementById('bgthr');
+  sl.disabled=(S.bgMode==='none');
+  if(S.bgMode==='dunkel' && S.bgThr>150){ S.bgThr=60; sl.value=60; document.getElementById('bgthr-val').textContent='60'; }
+  if(S.bgMode==='hell' && S.bgThr<150){ S.bgThr=235; sl.value=235; document.getElementById('bgthr-val').textContent='235'; }
+  buildSource(); draw();
+});
+document.getElementById('bgthr').addEventListener('input', e=>{
+  S.bgThr=parseInt(e.target.value);
+  document.getElementById('bgthr-val').textContent=e.target.value;
+  clearTimeout(bgTimer);
+  bgTimer=setTimeout(()=>{ buildSource(); draw(); }, 130);
+});
+
+document.getElementById('gridcol').addEventListener('change', e=>{
+  S.gridColor=e.target.value; draw();
+});
+
+['c-grid','c-axes','c-img'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', e=>{
+    if(id==='c-grid') S.showGrid=e.target.checked;
+    if(id==='c-axes') S.showAxes=e.target.checked;
+    if(id==='c-img')  S.showImg=e.target.checked;
+    draw();
+  });
+});
+
+/* ---------- Ausschnitt ---------- */
+
+const PAGES = {a4p:[210,297], a4l:[297,210], a3p:[297,420], a3l:[420,297]};
+const LEGGAP = 6;   // Abstand zwischen Kontrollschenkel und Rasterbereich
+
+function pageMargin(){
+  const v=parseFloat(document.getElementById('rand').value);
+  return (isNaN(v)||v<0) ? 12 : Math.min(v,40);
+}
+function contentOrigin(){
+  const m=pageMargin();
+  return {x:m+LEGGAP, y:m+5};      // 5 mm oben für die Infozeile
+}
+function availableMm(){
+  const [pw,ph]=PAGES[document.getElementById('fmt').value];
+  const m=pageMargin();
+  return {w:pw-2*m-LEGGAP, h:ph-2*m-LEGGAP-5};
+}
+
+function cropUI(){
+  const on = !!S.crop;
+  ['cx','cy','cw','chh'].forEach(id=>document.getElementById(id).disabled = !on);
+  const st=document.getElementById('crop-status');
+  if(!on){
+    ['cx','cy','cw','chh'].forEach(id=>document.getElementById(id).value='');
+    st.className='status dim';
+    st.textContent='Kein Ausschnitt – gedruckt wird der ganze Scan.';
+    return;
+  }
+  document.getElementById('cx').value=S.crop.x0.toFixed(1);
+  document.getElementById('cy').value=S.crop.y0.toFixed(1);
+  document.getElementById('cw').value=(S.crop.x1-S.crop.x0).toFixed(1);
+  document.getElementById('chh').value=(S.crop.y1-S.crop.y0).toFixed(1);
+
+  const corr=(parseFloat(document.getElementById('corr').value)||100)/100;
+  const av=availableMm();
+  const w=(S.crop.x1-S.crop.x0)*corr, h=(S.crop.y1-S.crop.y0)*corr;
+  if(w<=av.w && h<=av.h){
+    st.className='status ok';
+    st.textContent='Ausschnitt '+w.toFixed(1)+' × '+h.toFixed(1)+' mm passt aufs Blatt ('+av.w+' × '+av.h+' mm).';
+  } else {
+    st.className='status warn';
+    st.textContent='Ausschnitt '+w.toFixed(1)+' × '+h.toFixed(1)+' mm überschreitet '+av.w+' × '+av.h+' mm – wird beschnitten. Grösseres Format wählen.';
+  }
+}
+
+['cx','cy','cw','chh'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', ()=>{
+    if(!S.crop) return;
+    const x=parseFloat(document.getElementById('cx').value);
+    const y=parseFloat(document.getElementById('cy').value);
+    const w=parseFloat(document.getElementById('cw').value);
+    const h=parseFloat(document.getElementById('chh').value);
+    if([x,y,w,h].some(v=>isNaN(v)) || w<=0 || h<=0){ cropUI(); return; }
+    S.crop={x0:x, y0:y, x1:x+w, y1:y+h};
+    cropUI(); draw();
+  });
+});
+document.getElementById('btn-crop-clear').onclick=()=>{ S.crop=null; cropUI(); draw(); };
+document.getElementById('fmt').addEventListener('change', cropUI);
+document.getElementById('corr').addEventListener('change', cropUI);
+document.getElementById('rand').addEventListener('change', cropUI);
+
+/* ---------- PDF 1:1 ---------- */
+
+document.getElementById('btn-pdf').onclick=()=>{
+  if(!S.img){ alert('Zuerst einen Scan laden.'); return; }
+  if(S.mmPerPx==null){ alert('Zuerst den Massstab setzen.'); return; }
+  const fmt=document.getElementById('fmt').value;
+  const [pw,ph]=PAGES[fmt];
+  const corr=(parseFloat(document.getElementById('corr').value)||100)/100;
+  const av=availableMm();
+  const availW=av.w, availH=av.h;
+
+  // Inhaltsbereich in mm: gewählter Ausschnitt, sonst Bild-Bounding-Box
+  let x0,x1,y0,y1;
+  const reg=printRegion();
+  if(reg){ x0=reg.x0; x1=reg.x1; y0=reg.y0; y1=reg.y1; }
+  else { alert('Kein darstellbarer Bereich.'); return; }
+  let clipped=false;
+  if(x1-x0 > availW/corr){ const cxm=(x0+x1)/2, half=availW/corr/2; x0=cxm-half; x1=cxm+half; clipped=true; }
+  if(y1-y0 > availH/corr){ const cym=(y0+y1)/2, half=availH/corr/2; y0=cym-half; y1=cym+half; clipped=true; }
+
+  const regW=x1-x0, regH=y1-y0;
+  const k=300/25.4;                       // Renderauflösung: 300 dpi
+  const cw=Math.max(1,Math.round(regW*k)), ch=Math.max(1,Math.round(regH*k));
+  if(cw*ch > 60e6){ alert('Bereich zu gross zum Rendern. Bitte kleineres Format oder Ausschnitt wählen.'); return; }
+
+  const oc=document.createElement('canvas'); oc.width=cw; oc.height=ch;
+  const o=oc.getContext('2d');
+  o.fillStyle='#fff'; o.fillRect(0,0,cw,ch);
+
+  // q -> Canvas-Pixel
+  const f=k*S.mmPerPx;
+  const tx=-(S.origin.x*S.mmPerPx + x0)*k;
+  const ty=(y1 - S.origin.y*S.mmPerPx)*k;
+
+  if(S.showImg){
+    o.save();
+    o.beginPath(); o.rect(0,0,cw,ch); o.clip();
+    o.setTransform(f,0,0,f,tx,ty);
+    o.rotate(S.theta);
+    o.imageSmoothingQuality='high';
+    o.drawImage(S.src||S.img, -S.iw/2, -S.ih/2, S.iw, S.ih);
+    o.restore();
+  }
+
+  const MX = mm => (mm-x0)*k;
+  const MY = mm => (y1-mm)*k;
+
+  if(S.showGrid){
+    const levels=[{mm:1,a:.30,lw:1},{mm:5,a:.55,lw:1.4},{mm:10,a:1,lw:2}];
+    for(const lv of levels){
+      o.strokeStyle=gridRgba(lv.a); o.lineWidth=lv.lw; o.beginPath();
+      for(let i=Math.ceil(x0/lv.mm); i<=Math.floor(x1/lv.mm); i++){
+        o.moveTo(MX(i*lv.mm),0); o.lineTo(MX(i*lv.mm),ch);
+      }
+      for(let j=Math.ceil(y0/lv.mm); j<=Math.floor(y1/lv.mm); j++){
+        o.moveTo(0,MY(j*lv.mm)); o.lineTo(cw,MY(j*lv.mm));
+      }
+      o.stroke();
+    }
+  }
+  if(S.showAxes){
+    o.lineWidth=3;
+    if(0>=y0&&0<=y1){ o.strokeStyle=AX.x; o.beginPath(); o.moveTo(0,MY(0)); o.lineTo(cw,MY(0)); o.stroke(); }
+    if(0>=x0&&0<=x1){ o.strokeStyle=AX.y; o.beginPath(); o.moveTo(MX(0),0); o.lineTo(MX(0),ch); o.stroke(); }
+    const fs=Math.round(3.2*k), lh=Math.round(fs*1.4), gap=Math.round(fs*0.45);
+    o.font=fs+'px "DM Sans",sans-serif';
+    o.lineJoin='round'; o.miterLimit=2;
+    const opill=(t,x,y,align,baseline,col)=>{
+      o.textAlign=align; o.textBaseline=baseline;
+      o.lineWidth=Math.max(2, fs*0.20);
+      o.strokeStyle='rgba(255,255,255,.92)';
+      o.strokeText(t,x,y);
+      o.fillStyle=col; o.fillText(t,x,y);
+    };
+    let maxw=0;
+    for(let j=Math.ceil(y0/10); j<=Math.floor(y1/10); j++){
+      if(j===0) continue;
+      maxw=Math.max(maxw, o.measureText(String(j*10)).width);
+    }
+    const rowY=Math.min(Math.max(MY(0), 2), ch-lh-2);
+    const colX=Math.min(Math.max(MX(0), maxw+gap+2), cw-2);
+    for(let i=Math.ceil(x0/10); i<=Math.floor(x1/10); i++){
+      if(i===0) continue;
+      opill(String(i*10), MX(i*10), rowY+gap, 'center','top', AX.x);
+    }
+    for(let j=Math.ceil(y0/10); j<=Math.floor(y1/10); j++){
+      if(j===0) continue;
+      opill(String(j*10), colX-gap, MY(j*10), 'right','middle', AX.y);
+    }
+  }
+
+  const dataUrl=oc.toDataURL('image/png');
+
+  if(!(window.jspdf && window.jspdf.jsPDF)){
+    const co0=contentOrigin();
+    printFallback(dataUrl, regW*corr, regH*corr, pw, ph, co0.x, co0.y, pageMargin(), corr);
+    return;
+  }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm', format:[pw,ph], orientation: pw>ph?'landscape':'portrait'});
+  const m=pageMargin(), co=contentOrigin();
+  const ix=co.x+(availW-regW*corr)/2;
+  const iy=co.y+(availH-regH*corr)/2;
+  doc.addImage(dataUrl,'PNG', ix, iy, regW*corr, regH*corr);
+
+  // Kontrollschenkel 100 mm, im Blattrand links und unten – ausserhalb des Rasters
+  const bx=m, by=ph-m;
+  doc.setDrawColor(46,110,107); doc.setLineWidth(0.3);
+  doc.line(bx, by, bx+100*corr, by);
+  doc.line(bx, by, bx, by-100*corr);
+  doc.line(bx+100*corr, by-1.5, bx+100*corr, by+1.5);
+  doc.line(bx-1.5, by-100*corr, bx+1.5, by-100*corr);
+  doc.setFontSize(7); doc.setTextColor(46,110,107);
+  doc.text('100.0 mm', bx+100*corr+2, by+1);
+  doc.text('100.0 mm', bx+1.5, by-100*corr-1.5);
+
+  doc.setFontSize(7); doc.setTextColor(120,116,110);
+  const info='Massstab 1:1 · '+(25.4/S.mmPerPx).toFixed(1)+' dpi · Drehung '+
+             (S.theta*180/Math.PI).toFixed(2)+'° · Korrektur '+(corr*100).toFixed(1)+' %'+
+             (clipped?' · Ausschnitt beschnitten':'');
+  doc.text(info, co.x, m+2.5);
+  doc.save('umriss-1zu1.pdf');
+};
+
+function printFallback(dataUrl, wmm, hmm, pw, ph, mleft, mtop, m, corr){
+  const w=window.open('', '_blank');
+  w.document.write(
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Umriss 1:1</title><style>'+
+    '@page{size:'+pw+'mm '+ph+'mm;margin:0}'+
+    'body{margin:0}'+
+    '.pg{width:'+pw+'mm;height:'+ph+'mm;position:relative}'+
+    'img{position:absolute;left:'+mleft+'mm;top:'+mtop+'mm;width:'+wmm+'mm;height:'+hmm+'mm}'+
+    '.hx{position:absolute;left:'+m+'mm;top:'+(ph-m)+'mm;width:'+(100*corr)+'mm;height:0;border-top:.3mm solid #2E6E6B}'+
+    '.vx{position:absolute;left:'+m+'mm;top:'+(ph-m-100*corr)+'mm;height:'+(100*corr)+'mm;width:0;border-left:.3mm solid #2E6E6B}'+
+    '</style></head><body><div class="pg"><img src="'+dataUrl+'"><div class="hx"></div><div class="vx"></div></div>'+
+    '<script>window.onload=function(){window.print()}<\/script></body></html>');
+  w.document.close();
+}
+
+/* ---------- Schritte: erledigte zuklappen ---------- */
+
+const doneSteps = new Set();
+const sect = n => document.getElementById('s'+n);
+
+function markDone(n){
+  const el = sect(n);
+  if(el) el.classList.add('done');
+  if(doneSteps.has(n)) return;
+  doneSteps.add(n);
+  if(el) el.open = false;
+  /* Sobald der Massstab steht, ist Messen möglich – Schritt 5 aufklappen.
+     Ausrichten und Nullpunkt sind optionale Vorbereitung und blockieren nicht. */
+  if(n === 2){ const m = sect(5); if(m) m.open = true; }
+  for(let k=n+1; k<=4; k++){
+    if(!doneSteps.has(k)){
+      const nx = sect(k);
+      if(nx) nx.open = true;
+      break;
+    }
+  }
+}
+
+document.getElementById('pick').onclick = ()=>document.getElementById('file').click();
+
+/* ---------- Erklärungen ---------- */
+
+let tipSeq = 0;
+function closeTips(){
+  document.querySelectorAll('.tip.show').forEach(t=>{
+    t.classList.remove('show');
+    const o = t.parentElement.querySelector('.info');
+    if(o) o.setAttribute('aria-expanded','false');
+  });
+}
+function buildInfos(){
+  document.querySelectorAll('[data-info]').forEach(row=>{
+    if(row.querySelector('.info')) return;
+    const lab = row.querySelector('label');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'info'; b.textContent = 'i';
+    b.setAttribute('aria-label', 'Erklärung zu ' + (lab ? lab.textContent.trim() : 'dieser Einstellung'));
+    b.setAttribute('aria-expanded', 'false');
+    const tip = document.createElement('div');
+    tip.className = 'tip'; tip.setAttribute('role','tooltip');
+    tip.id = 'tip' + (++tipSeq);
+    tip.textContent = row.getAttribute('data-info');
+    b.setAttribute('aria-describedby', tip.id);
+    const show = v=>{
+      if(v) closeTips();
+      tip.classList.toggle('show', v);
+      b.setAttribute('aria-expanded', v ? 'true' : 'false');
+    };
+    b.addEventListener('mouseenter', ()=>show(true));
+    b.addEventListener('mouseleave', ()=>{ if(document.activeElement !== b) show(false); });
+    b.addEventListener('focus', ()=>show(true));
+    b.addEventListener('blur',  ()=>show(false));
+    b.addEventListener('click', e=>{ e.preventDefault(); show(!tip.classList.contains('show')); });
+    lab ? lab.after(b) : row.prepend(b);
+    row.appendChild(tip);
+  });
+}
+buildInfos();
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeTips(); closeGuide(); } });
+
+/* ---------- Kurzanleitung ---------- */
+/* Ohne Scan ist sie der Startbildschirm und bleibt stehen. Erst wenn ein Bild
+   geladen ist, lässt sie sich über „?“ holen und wieder wegklicken. */
+
+let guideOpen = false;
+const guide = document.getElementById('guide');
+const guideClose = document.getElementById('guide-close');
+const helpBtn = document.getElementById('help');
+
+function closeGuide(){
+  if(!guideOpen) return;
+  guideOpen = false;
+  guide.hidden = true;
+}
+helpBtn.onclick = ()=>{
+  if(!S.img) return;
+  guideOpen = !guideOpen;
+  guide.hidden = !guideOpen;
+  guideClose.hidden = false;
+};
+guideClose.onclick = closeGuide;
+document.addEventListener('pointerdown', e=>{
+  if(!guideOpen) return;
+  if(guide.contains(e.target)) return;
+  if(helpBtn.contains(e.target)) return;   /* sonst ginge sie sofort wieder zu */
+  closeGuide();
+}, true);
+
+window.addEventListener('resize', resize);
+resize(); renderList(); cropUI();
+})();
+</script>
+</body>
+</html>
